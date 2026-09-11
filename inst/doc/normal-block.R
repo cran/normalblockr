@@ -22,15 +22,15 @@ omega_structure = "erdos-renyi" # Network structure.
 u_v = c(0.3, 0.1) # Parameters to generate an association matrix from a graph, details given in the bibliography.
 SNR = 0.75 # Signal to Noise Ratio, defines the relative weight of the covariates and the variance
 alpha = rep(1/q, q) # Vector giving probabilities of belonging to each cluster
-range_X = c(0, 10)  # Min and max values for the covariates 
-range_D = c(0.5, 1.5) # Min and max values for the individual entities variances 
+range_X = c(0, 10)  # Min and max values for the covariates
+range_D = c(0.5, 1.5) # Min and max values for the individual entities variances
 
 ## ----simulation1--------------------------------------------------------------
 my_nb_data <- generate_normal_block_var_data(n, p, d, q, kappa, omega_structure, u_v,
                                             SNR, alpha, range_X, range_D)
 
 ## ----simulation1-visualization------------------------------------------------
-pheatmap::pheatmap(my_nb_data$Y, 
+pheatmap::pheatmap(my_nb_data$Y,
                    color =paletteer::paletteer_c("ggthemes::Orange-Gold", n = 100), cluster_rows = FALSE, cluster_cols = FALSE, show_rownames = FALSE)
 
 ## ----simulation2--------------------------------------------------------------

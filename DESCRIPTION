@@ -1,9 +1,10 @@
 Package: normalblockr
 Type: Package
 Title: Gaussian Graphical Models with Latent Clustering Structure
-Version: 0.2.1
+Version: 0.3.0
 Authors@R: c(
   person("Jeanne", "Tous", role = "aut", email = "jeanne.tous@inrae.fr"),
+  person("Nestor",  "Ngalala Manguitini", role = "ctb"),
   person("Julien", "Chiquet", role = c("aut", "cre"), email = "julien.chiquet@inrae.fr",
       comment = c(ORCID = "0000-0002-3629-3429"))
       )
@@ -14,29 +15,32 @@ Description: Implements the Normal-Block model, a Gaussian graphical model
              dependencies between clusters rather than between individual
              variables, for known or unknown clusterings, with an optional
              zero-inflation extension for data with an excess of exact
-             zeros. See Tous & Chiquet (2026)
+             zeros. A complementary family clusters variables by their
+             regression response to covariates rather than by their
+             covariance, sharing one profile per cluster. See Tous & Chiquet (2026)
              <doi:10.1016/j.csda.2026.108347> for the model itself and its
              variational expectation-maximization estimation procedure.
 License: GPL (>= 3)
-URL: https://github.com/jchiquet/normalblockr
+URL: https://github.com/jchiquet/normalblockr,
+        https://jchiquet.github.io/normalblockr/
 BugReports: https://github.com/jchiquet/normalblockr/issues
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.1.0)
-Imports: glassoFast, Matrix, dplyr, tidyr, tibble, purrr, R6, ggplot2,
-        igraph, sbm, corrplot, scales, MASS, stats, Rcpp
+Imports: Matrix, dplyr, tidyr, tibble, purrr, R6, ggplot2, igraph, sbm,
+        corrplot, scales, MASS, stats, Rcpp
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: testthat (>= 3.0.0), aricode, covr, Metrics, rmarkdown,
         pheatmap, paletteer, ggthemes, knitr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Config/roxygen2/version: 8.0.0
-RoxygenNote: 7.3.3
+Config/roxygen2/version: 8.1.0
 NeedsCompilation: yes
-Packaged: 2026-08-20 11:30:04 UTC; jchiquet
+Packaged: 2026-09-11 17:43:32 UTC; jchiquet
 Author: Jeanne Tous [aut],
+  Nestor Ngalala Manguitini [ctb],
   Julien Chiquet [aut, cre] (ORCID:
     <https://orcid.org/0000-0002-3629-3429>)
 Maintainer: Julien Chiquet <julien.chiquet@inrae.fr>
 Repository: CRAN
-Date/Publication: 2026-09-03 12:00:02 UTC
+Date/Publication: 2026-09-11 18:10:02 UTC
