@@ -1,4 +1,4 @@
-#' Breast cancer proteomics data (TCGA, RPPA)
+#' Breast Cancer Proteomics Data (TCGA, RPPA)
 #'
 #' Reverse-phase protein array (RPPA) measurements of 163 proteins across 346
 #' breast cancer tumor samples from The Cancer Genome Atlas (TCGA), along with
@@ -51,7 +51,7 @@
 #' table(brca_rppa$gene_annotation$go_bp_term)
 "brca_rppa"
 
-#' French stream fish community data (ONEMA / OFB electrofishing surveys)
+#' French Stream Fish Community Data (ONEMA / OFB Electrofishing Surveys)
 #'
 #' Fish biomass per species, aggregated by sampling station, together with
 #' environmental covariates for each station. Derived from the fish community
@@ -95,11 +95,14 @@
 #' X <- model.matrix(~ 1, data = onema$covariates)
 #' nb_data <- NormalBlockData$new(Y, X)
 #' \donttest{
-#' out <- normal_block(nb_data, 2:15, control = NB_control(clustering_init = "ward2"))
+#' ## zero-inflated fits; ward2 initializations suit abundance data
+#' out <- normal_block(nb_data, 2:6, zero_inflation = TRUE,
+#'                     control = NB_control(clustering_init = "ward2", verbose = FALSE))
+#' out$get_best_model("ICL")
 #' }
 "onema"
 
-#' University webpages text data (CMU "4 Universities" / WebKB)
+#' University Webpages Text Data (CMU "4 Universities" / WebKB)
 #'
 #' Term-frequency data derived from the student personal webpages of the CMU
 #' "World Wide Knowledge Base" (WebKB) project's "4 Universities" dataset
@@ -140,6 +143,7 @@
 #' Y <- log(1 + university$frequencies[, university$terms])
 #' nb_data <- NormalBlockData$new(Y, X = matrix(1, nrow(Y), 1))
 #' \donttest{
-#' out <- normal_block(nb_data, 2:15)
+#' out <- normal_block(nb_data, 2:6, control = NB_control(verbose = FALSE))
+#' out$get_best_model("ICL")
 #' }
 "university"

@@ -2,7 +2,7 @@
 ##  CLASS ZINormalBlockMeanUnknownClusters #############
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Zero-Inflated Mean-Block Model with Unknown Clustering
+#' Zero-Inflated Normal-Block-Mean Model with Unknown Clustering
 #'
 #' R6 class for a zero-inflated Normal-Block-Mean model with a fixed number of
 #' clusters (but unknown clustering), inferred by variational EM. Sigma is
@@ -37,28 +37,8 @@ ZINormalBlockMeanUnknownClusters <- R6::R6Class(
   ## PRIVATE MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   private = list(
-    optim_initialize = function() {
-      if (private$warm_started) list(B = private$B, Omega = private$Omega, tau = private$C)
-      else private$get_heuristic_parameters()
-    },
-
-    get_heuristic_parameters = function() {
-      fit <- private$zi_mean_inference()
-      ## cluster the fitted mean trajectory rather than B itself, as in the
-      ## non-ZI class -- see NormalBlockMeanUnknownClusters
-      if (anyNA(private$C))
-        private$C <- private$heuristic_clustering(self$data$X %*% fit$B)
-      tau <- check_one_boundary(check_zero_boundary(private$C))
-      tau <- tau / rowSums(tau)
-      list(B     = private$heuristic_cluster_B_from_variable_B(fit$B, tau),
-           Omega = fit$Omega, tau = tau)
-    },
-
-    heuristic_optimize = function(control) {
-      private$niter <- 0
-      init <- private$get_heuristic_parameters()
-      list(B = init$B, Omega = init$Omega, C = init$tau, alpha = colMeans(init$tau))
-    },
+    ## split(rule = "kmeans"): masked least-squares profiles, as the initialization
+    split_target = function() self$data$X %*% self$data$zi_ols_fit()$B,
 
     ## Runs the VEM recursion via the Rcpp/Armadillo core (src/exports.cpp,
     ## ZINormalBlockMeanUnknownClusters_fit).
@@ -70,6 +50,7 @@ ZINormalBlockMeanUnknownClusters <- R6::R6Class(
         B0 = init$B, Omega0 = init$Omega, tau0 = init$tau,
         noise_covariance = private$res_covariance,
         fixed_tau = isTRUE(control$fixed_tau),
+        accelerate = private$use_acceleration(control),
         niter = control$niter, threshold = control$threshold
       )
       private$niter <- res$niter
@@ -82,23 +63,11 @@ ZINormalBlockMeanUnknownClusters <- R6::R6Class(
   ##  ACTIVE BINDINGS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   active = list(
-    #' @field fitted Y values predicted by the model, in Y's original units
-    fitted = function() {
-      private$rescale_to_original(
-        (self$data$X %*% private$B %*% t(private$C)) * self$data$zeros_bar)
-    },
     #' @field var_par a list with the variational parameter: tau (posterior group probabilities)
     var_par = function() list(tau = private$C),
-    #' @field model_par a list with model parameters: B, Omega and kappa (zero-inflation probabilities)
-    model_par = function() c(super$model_par, list(kappa = private$kappa)),
-    #' @field nb_param number of parameters in the model
-    nb_param = function() {
-      as.integer(super$nb_param + self$q - 1 + self$p * self$data$d0) # adding alpha and kappa
-    },
-    #' @field entropy Entropy of the conditional distribution
-    entropy = function() -sum(xlogx(private$C)),
-    #' @field who_am_I a method to print what model is being fitted
-    who_am_I = function()
-    {paste("zero-inflated", private$res_covariance, "normal-block-mean model with unknown blocks")}
+    #' @field model_par the parameters of [NormalBlockMeanBase] (B, Omega),
+    #' plus B0 (zero-inflation coefficients), kappa (zero-inflation
+    #' probabilities) and alpha (cluster proportions)
+    model_par = function() c(super$model_par, list(B0 = private$B0, kappa = private$kappa, alpha = private$alpha))
   )
 )

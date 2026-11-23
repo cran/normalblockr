@@ -2,7 +2,7 @@
 % Please edit documentation in R/NormalBlockMeanUnknownClusters.R
 \name{NormalBlockMeanUnknownClusters}
 \alias{NormalBlockMeanUnknownClusters}
-\title{Mean-Block Model with Unknown Clustering}
+\title{Normal-Block-Mean Model with Unknown Clustering}
 \description{
 R6 class for a Normal-Block-Mean model with a fixed number of clusters
 (but unknown clustering), inferred by variational EM.
@@ -19,17 +19,10 @@ model$clustering
 \section{Active bindings}{
   \if{html}{\out{<div class="r6-active-bindings">}}
   \describe{
-    \item{\code{fitted}}{Y values predicted by the model, in Y's original units}
+    \item{\code{model_par}}{the parameters of \link{NormalBlockMeanBase} (B, Omega),
+plus alpha (cluster proportions)}
 
     \item{\code{var_par}}{a list with the variational parameter: tau (posterior group probabilities)}
-
-    \item{\code{nb_param}}{number of parameters in the model}
-
-    \item{\code{entropy}}{Entropy of the conditional distribution
-The only latent variable is the clustering, so the entropy of the
-variational distribution reduces to -sum(tau * log(tau)).}
-
-    \item{\code{who_am_I}}{a method to print what model is being fitted}
   }
   \if{html}{\out{</div>}}
 }
@@ -45,6 +38,7 @@ variational distribution reduces to -sum(tau * log(tau)).}
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="best_of_inits"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-best_of_inits'><code>NormalBlockBase$best_of_inits()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_merge"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_merge'><code>NormalBlockBase$candidates_merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_split"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_split'><code>NormalBlockBase$candidates_split()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="heldout_loglik"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-heldout_loglik'><code>NormalBlockBase$heldout_loglik()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="latent_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-latent_network'><code>NormalBlockBase$latent_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="optimize"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-optimize'><code>NormalBlockBase$optimize()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot'><code>NormalBlockBase$plot()</code></a></span></li>
@@ -52,17 +46,17 @@ variational distribution reduces to -sum(tau * log(tau)).}
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot_network'><code>NormalBlockBase$plot_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="print"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-print'><code>NormalBlockBase$print()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="update"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-update'><code>NormalBlockBase$update()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-warm_start_from'><code>NormalBlockBase$warm_start_from()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="merge"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-merge'><code>NormalBlockMeanBase$merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="predict"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-predict'><code>NormalBlockMeanBase$predict()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="split"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-split'><code>NormalBlockMeanBase$split()</code></a></span></li>
-  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-warm_start_from'><code>NormalBlockMeanBase$warm_start_from()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NormalBlockMeanUnknownClusters-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockMeanUnknownClusters-initialize}{}}}
 \subsection{\code{NormalBlockMeanUnknownClusters$new()}}{
-  Create a new [`NormalBlockMeanUnknownClusters`] object.
+  Create a new \code{\link{NormalBlockMeanUnknownClusters}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockMeanUnknownClusters$new(
@@ -84,7 +78,7 @@ variational distribution reduces to -sum(tau * log(tau)).}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`NormalBlockMeanUnknownClusters`] object
+    A new \code{\link{NormalBlockMeanUnknownClusters}} object
   }
 }
 

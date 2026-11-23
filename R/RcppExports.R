@@ -20,11 +20,13 @@
 #' @param noise_covariance either "diagonal" or "spherical"
 #' @param niter maximum number of EM iterations
 #' @param threshold convergence threshold on the objective increment
+#' @param accelerate whether to attempt the SQUAREM extrapolation on top of
+#' plain EM (never attempted when sparsity > 0)
 #' @return a list with the fitted parameters (B, dm1, Omega, gamma, mu), the
 #' objective (log-likelihood) trace and the number of iterations performed
 #' @noRd
-NormalBlockVarKnownClusters_fit <- function(Y, X, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold) {
-    .Call(`_normalblockr_NormalBlockVarKnownClusters_fit`, Y, X, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold)
+NormalBlockVarKnownClusters_fit <- function(Y, X, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold, accelerate = TRUE) {
+    .Call(`_normalblockr_NormalBlockVarKnownClusters_fit`, Y, X, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold, accelerate)
 }
 
 #' Fit a normal-block model with unknown clusters (Rcpp/Armadillo core, VEM)
@@ -43,8 +45,8 @@ NormalBlockVarKnownClusters_fit <- function(Y, X, C, B0, dm1_0, Omega0, sparsity
 #' @return a list with the fitted parameters (B, dm1, Omega, C, alpha, M, S),
 #' the ELBO trace and the number of iterations performed
 #' @noRd
-NormalBlockVarUnknownClusters_fit <- function(Y, X, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold) {
-    .Call(`_normalblockr_NormalBlockVarUnknownClusters_fit`, Y, X, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold)
+NormalBlockVarUnknownClusters_fit <- function(Y, X, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold, accelerate = TRUE) {
+    .Call(`_normalblockr_NormalBlockVarUnknownClusters_fit`, Y, X, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold, accelerate)
 }
 
 #' Fit a zero-inflated normal-block model with known clusters (Rcpp/Armadillo core)
@@ -69,12 +71,14 @@ NormalBlockVarUnknownClusters_fit <- function(Y, X, B0, dm1_0, Omega0, C0, alpha
 #' @param noise_covariance either "diagonal" or "spherical"
 #' @param niter maximum number of EM iterations
 #' @param threshold convergence threshold on the objective increment
+#' @param accelerate whether to attempt the SQUAREM extrapolation on top of
+#' plain EM (never attempted when sparsity > 0)
 #' @return a list with the fitted parameters (B, dm1, Omega, gamma, mu -- gamma
 #' is a q x q x n array, one posterior covariance matrix per row), the
 #' log-likelihood trace and the number of iterations performed
 #' @noRd
-ZINormalBlockVarKnownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold) {
-    .Call(`_normalblockr_ZINormalBlockVarKnownClusters_fit`, Y, X, zeros_bar, zi_cond_mean, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold)
+ZINormalBlockVarKnownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold, accelerate = TRUE) {
+    .Call(`_normalblockr_ZINormalBlockVarKnownClusters_fit`, Y, X, zeros_bar, zi_cond_mean, C, B0, dm1_0, Omega0, sparsity, sparsity_weights, noise_covariance, niter, threshold, accelerate)
 }
 
 #' Fit a zero-inflated normal-block model with unknown clusters (Rcpp/Armadillo core, VEM)
@@ -95,8 +99,8 @@ ZINormalBlockVarKnownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, C, 
 #' @return a list with the fitted parameters (B, dm1, Omega, C, alpha, M, S),
 #' the ELBO trace and the number of iterations performed
 #' @noRd
-ZINormalBlockVarUnknownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold) {
-    .Call(`_normalblockr_ZINormalBlockVarUnknownClusters_fit`, Y, X, zeros_bar, zi_cond_mean, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold)
+ZINormalBlockVarUnknownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold, accelerate = TRUE) {
+    .Call(`_normalblockr_ZINormalBlockVarUnknownClusters_fit`, Y, X, zeros_bar, zi_cond_mean, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, noise_covariance, fixed_tau, niter, threshold, accelerate)
 }
 
 #' Fit a mean-block model with known clusters (Rcpp/Armadillo core)
@@ -200,8 +204,8 @@ ZINormalBlockMeanUnknownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, 
 #' Graphical lasso (Rcpp/Armadillo core)
 #'
 #' In-package replacement for `glassoFast::glassoFast()`; see
-#' src/graphical_lasso.h for the algorithm and the two deliberate departures
-#' from the Fortran it ports.
+#' src/graphical_lasso.h (shared verbatim with PLNmodels) for the algorithm, its
+#' scaling to a unit diagonal and its departures from the Fortran it ports.
 #'
 #' @param S empirical covariance matrix (n x n)
 #' @param rho penalty, either a scalar or an n x n matrix of per-pair weights
@@ -210,7 +214,9 @@ ZINormalBlockMeanUnknownClusters_fit <- function(Y, X, zeros_bar, zi_cond_mean, 
 #' @param w_init,wi_init optional warm start: a previous solve's `w`/`wi`.
 #' Both must be given, and have S's dimensions, to be used.
 #' @return a list with `w` (covariance estimate), `wi` (precision estimate),
-#' `niter` and `converged`
+#' `niter`, `converged`, `status` (how the solve ended), `delta` (best
+#' convergence criterion, relative to its threshold) and `shift` (added to the
+#' diagonal of `wi` to make it positive definite, 0 if it was)
 #' @noRd
 graphical_lasso_fit <- function(S, rho, thr = 1e-4, maxIt = 10000L, w_init = NULL, wi_init = NULL) {
     .Call(`_normalblockr_graphical_lasso_fit`, S, rho, thr, maxIt, w_init, wi_init)

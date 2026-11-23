@@ -14,19 +14,26 @@
 #' Y. By default they are read off Y itself (`Y == 0`). Pass it explicitly
 #' when the matrix handed to the model is no longer the one carrying the zeros
 #' (typically the residuals of a first stage, see [normal_block_sequential()]).
-#' @param scale whether to rescale each column of Y by its own standard
-#' deviation before fitting (default TRUE). Columns are not centered: the
-#' model's own intercept already absorbs each variable's mean, so
-#' centering here would be redundant.
-#' Rescaling matters because the normal-block model assumes a single shared
-#' covariance value within each block (`Cov(Y_j, Y_j') = Var(W_k)` for j, j'
-#' in block k); on the raw scale, that assumption is swamped whenever
-#' variables in the same true block have very different baseline variances
-#' (e.g. species with very different total abundance). The resulting `B`,
-#' `Omega` and clustering are therefore properties of the *scaled* data, not
-#' directly convertible back to the original units (the per-column scaling
-#' factors are not the same within a block, so there is no single way to
-#' "unscale" a shared block covariance back to a p x p matrix).
+#' @section Rescaling Y (`scale`):
+#' Each column of Y can be divided by its own standard deviation before
+#' fitting. `scale = NULL` (the default) leaves the choice to the model
+#' family, resolved when a model is fitted: rescaled for variance-block
+#' models, raw for mean-block ones; `TRUE` or `FALSE` forces it for both.
+#' Columns are never centered: the model's own intercept already absorbs each
+#' variable's mean.
+#'
+#' The two families need opposite defaults. A variance-block model loads every
+#' variable of a block on the same latent signal with the same weight, while on
+#' real data the variables of a block may carry that signal with different
+#' amplitudes; rescaling evens them out. A mean-block model shares a mean
+#' profile within a block, which a division by variable-specific standard
+#' deviations would break.
+#'
+#' The resulting `B`, `Omega` and clustering are properties of the data the
+#' model was fitted on; with rescaled data, use `$B_original`,
+#' `$dm1_original` and [fitted()] for quantities in Y's original units (a
+#' shared block covariance has no unique original-scale counterpart, since
+#' the scaling factors differ within a block).
 #' @examples
 #' ex <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
 #' data <- NormalBlockData$new(ex$Y, ex$X)
@@ -41,8 +48,11 @@ NormalBlockData <- R6::R6Class(
     #' @field Y the matrix of responses (rescaled column-wise if `scale = TRUE`)
     Y  = NULL,
     #' @field Y_scale the per-column standard deviation Y was divided by (all
-    #' 1's if `scale = FALSE`)
+    #' 1's if Y was not rescaled)
     Y_scale = NULL,
+    #' @field scale the `scale` argument as given: `TRUE`, `FALSE`, or `NULL`
+    #' for the family default (see `for_family()`)
+    scale = NULL,
     #' @field X the matrix of covariates
     X = NULL,
     #' @field X0 the matrix of zero-inflation covariates, if applicable
@@ -78,16 +88,37 @@ NormalBlockData <- R6::R6Class(
     #' @param X0 zero-inflation design matrix, if applicable.
     #' @param formula describes the relationship between Y and X, useful if not all of X's covariates should be used.
     #' @param scale whether to rescale each column of Y by its own standard
-    #' deviation (no centering). Default TRUE, see the class-level
-    #' documentation for the rationale and its limits.
+    #' deviation (no centering): `NULL` (default) for the model family's
+    #' default, see the section "Rescaling Y" below and `for_family()`.
     #' @param zeros an optional 0/1 matrix of structural zeros, overriding the
     #' default `Y == 0`.
-    initialize = function(Y, X, X0 = NULL, formula = NULL, scale = TRUE,
-                          zeros = NULL) {
+    #' @param check_constant whether to refuse constant columns of Y, which
+    #' carry no information to cluster on. `FALSE` for data only used to
+    #' evaluate a fitted model (see `heldout_loglik()`).
+    initialize = function(Y, X, X0 = NULL, formula = NULL, scale = NULL,
+                          zeros = NULL, check_constant = TRUE) {
       stopifnot("Y and X must be matrices" = all(is.matrix(Y), is.matrix(X)))
       stopifnot("Y and X must have the same number of rows" = (nrow(Y) == nrow(X)))
-      self$Y_scale <- if (scale) pmax(apply(Y, 2, sd), .Machine$double.eps) else rep(1, ncol(Y))
-      self$Y <- Y / matrix(self$Y_scale, nrow(Y), ncol(Y), byrow = TRUE)
+      stopifnot("scale must be NULL, TRUE or FALSE" =
+                  is.null(scale) || (is.logical(scale) && length(scale) == 1 && !is.na(scale)))
+      constant <- if (check_constant) which(apply(Y, 2, function(y) all(y == y[1]))) else integer(0)
+      if (length(constant) > 0) {
+        names_Y <- colnames(Y)
+        stop("Y has constant columns, which carry no information to cluster on: ",
+             paste(if (is.null(names_Y)) constant else names_Y[constant], collapse = ", "),
+             ". Remove them before fitting.", call. = FALSE)
+      }
+      self$scale <- scale
+      ## the constructor's arguments, kept for for_family(), subset() and
+      ## Y_original
+      private$args <- list(Y = Y, X = X, X0 = X0, formula = formula, zeros = zeros)
+      if (isTRUE(scale)) {
+        self$Y_scale <- pmax(apply(Y, 2, sd), .Machine$double.eps)
+        self$Y <- Y / matrix(self$Y_scale, nrow(Y), ncol(Y), byrow = TRUE)
+      } else {
+        self$Y_scale <- rep(1, ncol(Y))
+        self$Y <- Y
+      }
       self$n <- nrow(Y)
       self$p <- ncol(Y)
       self$formula <- formula
@@ -113,7 +144,9 @@ NormalBlockData <- R6::R6Class(
       self$d0        <- ncol(self$X0)
       self$d         <- ncol(self$X)
       self$XtX       <- crossprod(self$X)
-      self$XtXm1     <- chol2inv(chol(self$XtX))
+      ## a rank-deficient design (e.g. a category absent from a cross-validation
+      ## fold) falls back on the pseudo-inverse, i.e. minimum-norm least squares
+      self$XtXm1     <- tryCatch(chol2inv(chol(self$XtX)), error = function(e) MASS::ginv(self$XtX))
       self$XtY       <- crossprod(self$X, self$Y)
       if (is.null(zeros)) {
         self$zeros <- 1 * (self$Y == 0)
@@ -125,6 +158,38 @@ NormalBlockData <- R6::R6Class(
       self$zeros_bar <- 1 - self$zeros
       self$npY       <- sum(self$zeros_bar)
       self$nY        <- colSums(self$zeros_bar)
+    },
+
+    #' @description The data a model of the given family is fitted on. When
+    #' `scale` was given explicitly, the object itself. Otherwise (`scale =
+    #' NULL`) the family decides: the object itself, unscaled, for the
+    #' mean-block family; a rescaled copy for the variance-block family,
+    #' built once and shared by every model fitted on it.
+    #' @param model the model family, `"var"` or `"mean"`
+    #' @return a [`NormalBlockData`] object
+    for_family = function(model = c("var", "mean")) {
+      model <- match.arg(model)
+      if (!is.null(self$scale) || model == "mean") return(self)
+      if (is.null(private$scaled_copy))
+        private$scaled_copy <- NormalBlockData$new(private$args$Y, private$args$X, private$args$X0,
+                                                   private$args$formula, scale = TRUE,
+                                                   zeros = private$args$zeros, check_constant = FALSE)
+      private$scaled_copy
+    },
+
+    #' @description The data restricted to some observations, with the same
+    #' covariates, formula, zeros and scale request (a rescaled Y is rescaled
+    #' again on these rows).
+    #' @param rows the observations to keep (indices or a logical vector)
+    #' @param check_constant as in `new()`
+    #' @return a [`NormalBlockData`] object
+    subset = function(rows, check_constant = TRUE) {
+      a <- private$args
+      NormalBlockData$new(a$Y[rows, , drop = FALSE], a$X[rows, , drop = FALSE],
+                          X0 = if (!is.null(a$X0)) a$X0[rows, , drop = FALSE],
+                          formula = a$formula, scale = self$scale,
+                          zeros = self$zeros[rows, , drop = FALSE],
+                          check_constant = check_constant)
     },
 
     #' @description Ordinary-least-squares fit of Y on X, with its residuals
@@ -174,7 +239,7 @@ NormalBlockData <- R6::R6Class(
         ## covariate contributes x * -Inf, which is +Inf wherever x < 0, and
         ## the linear predictor collapses to NaN.
         kappa <- if (no_zeros) matrix(0, self$n, self$p)
-                 else apply(self$X0 %*% B0, MARGIN = c(1, 2), FUN = sigmoid)
+                 else stats::plogis(self$X0 %*% B0)
         private$zi_cache <- list(
           B0 = B0, kappa = kappa,
           ZI_cond_mean = sum(xlogy(self$zeros, kappa)) +
@@ -192,6 +257,18 @@ NormalBlockData <- R6::R6Class(
     ## set in initialize(), none of which change afterwards
     ols_cache     = NULL,
     zi_ols_cache  = NULL,
-    zi_cache      = NULL
+    zi_cache      = NULL,
+    ## the constructor's arguments, and the rescaled copy built from them for
+    ## the variance-block family when scale = NULL (see for_family())
+    args          = NULL,
+    scaled_copy   = NULL
+  ),
+
+  ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ##  ACTIVE BINDINGS ----
+  ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  active = list(
+    #' @field Y_original the matrix of responses as given, before any rescaling
+    Y_original = function() private$args$Y
   )
 )

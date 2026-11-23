@@ -2,7 +2,7 @@
 ##  CLASS NormalBlockVarKnownClusters #############################
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Normal-Block Model with Known Clustering
+#' Normal-Block-Var Model with Known Clustering
 #'
 #' R6 class for a normal-block model with known clustering.
 #' @examples
@@ -20,13 +20,12 @@ NormalBlockVarKnownClusters <- R6::R6Class(
   public = list(
     #' @description Create a new [`NormalBlockVarKnownClusters`] object.
     #' @param data object of NormalBlockVarData class, with responses and design matrix
-    #' @param C clustering matrix C_jk = 1 if species j belongs to cluster k
+    #' @param C p x q clustering matrix, C_jk = 1 if variable j belongs to cluster k
     #' @param sparsity to apply on variance matrix when calling GLASSO
     #' @param control structured list of more specific parameters, to generate with NB_control
     #' @return A new [`NormalBlockVarKnownClusters`] object
     initialize = function(data, C, sparsity = 0, control = NB_control()) {
-      stopifnot("C must be a matrix" = is.matrix(C))
-      stopifnot("There cannot be empty clusters" = min(colSums(C)) > 0)
+      check_known_clustering(C, data$p)
       super$initialize(data, ncol(C), sparsity, control)
       private$C <- C
     }
@@ -36,6 +35,7 @@ NormalBlockVarKnownClusters <- R6::R6Class(
   ## PRIVATE MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   private = list(
+    known_clusters = TRUE,
 
     get_heuristic_parameters = function(){
       reg_res   <- private$multivariate_normal_inference()
@@ -65,6 +65,7 @@ NormalBlockVarKnownClusters <- R6::R6Class(
         B0 = init$B, dm1_0 = init$dm1, Omega0 = init$Omega,
         sparsity = self$sparsity, sparsity_weights = self$sparsity_weights,
         noise_covariance = private$res_covariance,
+        accelerate = !isFALSE(control$acceleration),
         niter = control$niter, threshold = control$threshold
       )
       private$niter <- res$niter
@@ -79,26 +80,6 @@ NormalBlockVarKnownClusters <- R6::R6Class(
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   active = list(
     #' @field posterior_par a list with the parameters of posterior distribution W | Y
-    posterior_par = function() list(gamma = private$gamma, mu = private$mu),
-    #' @field entropy Entropy of the conditional distribution
-    entropy    = function() {
-      if (!private$approx){
-        res <- .5 * self$n * self$q * log(2 * pi * exp(1)) +
-          .5 * self$n * as.numeric(determinant(private$gamma)$modulus)
-      } else {res <- NA}
-      res
-    },
-    #' @field fitted Y values predicted by the model, in Y's original units
-    fitted = function(){
-      res <- if (private$approx) {
-        self$data$X %*% private$B
-      } else {
-        self$data$X %*% private$B + tcrossprod(private$mu, private$C)
-      }
-      private$rescale_to_original(res)
-    },
-    #' @field who_am_I a method to print what model is being fitted
-    who_am_I = function()
-      {paste(private$res_covariance, "normal-block-var model with fixed blocks")}
+    posterior_par = function() list(gamma = private$gamma, mu = private$mu)
   )
 )

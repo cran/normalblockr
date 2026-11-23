@@ -4,11 +4,11 @@
 \alias{NormalBlockCollectionClustersSparsity}
 \title{Base Class for a Collection over Cluster Counts and Sparsity Levels}
 \description{
-Shared scaffolding for [NormalBlockVarCollectionClustersSparsity] and
-[NormalBlockMeanCollectionClustersSparsity]: a collection of sparsity
-sub-collections, one per q. Everything family-agnostic (two-key model
-lookup, model selection over both axes, the criteria heatmap) lives here;
-subclasses only build `self$models` and name themselves.
+Shared scaffolding for \link{NormalBlockVarCollectionClustersSparsity} and
+\link{NormalBlockMeanCollectionClustersSparsity}: a collection of sparsity
+sub-collections, one per q in increasing order. Everything lives here
+(two-key model lookup, model selection over both axes, the criteria
+heatmap); subclasses only name the model family.
 }
 \examples{
 # An internal abstract base class, never instantiated directly -- see
@@ -30,6 +30,7 @@ subclasses only build `self$models` and name themselves.
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-NormalBlockCollectionClustersSparsity-initialize}{\code{NormalBlockCollectionClustersSparsity$new()}}
     \item \href{#method-NormalBlockCollectionClustersSparsity-get_model}{\code{NormalBlockCollectionClustersSparsity$get_model()}}
     \item \href{#method-NormalBlockCollectionClustersSparsity-get_best_model}{\code{NormalBlockCollectionClustersSparsity$get_best_model()}}
     \item \href{#method-NormalBlockCollectionClustersSparsity-plot}{\code{NormalBlockCollectionClustersSparsity$plot()}}
@@ -43,6 +44,37 @@ subclasses only build `self$models` and name themselves.
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockCollection" data-id="summary"><a href='../../normalblockr/html/NormalBlockCollection.html#method-NormalBlockCollection-summary'><code>NormalBlockCollection$summary()</code></a></span></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NormalBlockCollectionClustersSparsity-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-NormalBlockCollectionClustersSparsity-initialize}{}}}
+\subsection{\code{NormalBlockCollectionClustersSparsity$new()}}{
+  Create a collection over a range of q, sorted
+increasingly, with a sparsity path for each q.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{NormalBlockCollectionClustersSparsity$new(
+  mydata,
+  q_list,
+  zero_inflation = FALSE,
+  control = NB_control()
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{mydata}}{object of NormalBlockData class, with responses and design matrix}
+      \item{\code{q_list}}{values of q (number of clusters) in the collection}
+      \item{\code{zero_inflation}}{whether the models of the collection are zero-inflated}
+      \item{\code{control}}{structured list of parameters to handle sparsity control}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new collection object
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NormalBlockCollectionClustersSparsity-get_model"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockCollectionClustersSparsity-get_model}{}}}
@@ -96,7 +128,8 @@ Either "BIC", "EBIC" or "ICL". "ICL" is the default criterion}
 \if{html}{\out{<a id="method-NormalBlockCollectionClustersSparsity-plot"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockCollectionClustersSparsity-plot}{}}}
 \subsection{\code{NormalBlockCollectionClustersSparsity$plot()}}{
-  Display various outputs (goodness-of-fit criteria, robustness, diagnostic) associated with a collection of network fits
+  Plot one criterion as a heatmap over q and the penalty
+(see also \code{\link[=plot.NormalBlockCollection]{plot.NormalBlockCollection()}}).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockCollectionClustersSparsity$plot(
@@ -108,13 +141,15 @@ Either "BIC", "EBIC" or "ICL". "ICL" is the default criterion}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{criterion}}{The criteria to plot in `c("deviance", BIC", "EBIC", "ICL")`. Defaults deviance.}
-      \item{\code{n_intervals}}{number of intervals into which the penalties range should be split}
+      \item{\code{criterion}}{the criterion to plot, among \code{"deviance"} (the
+default), \code{"ICL"}, \code{"BIC"} and \code{"EBIC"}.}
+      \item{\code{n_intervals}}{number of intervals into which the range of the
+penalties is split}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    a [`ggplot2::ggplot`] heatmap
+    a \code{\link[ggplot2:ggplot]{ggplot2::ggplot}} heatmap
   }
 }
 

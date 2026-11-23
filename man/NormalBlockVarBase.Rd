@@ -2,7 +2,7 @@
 % Please edit documentation in R/NormalBlockVarBase.R
 \name{NormalBlockVarBase}
 \alias{NormalBlockVarBase}
-\title{Base Class for Variance-Block Models}
+\title{Base Class for Normal-Block-Var Models}
 \description{
 R6 abstract class for the sparse Normal-Block models, where the clustering
 structures the latent covariance.
@@ -21,22 +21,26 @@ structures the latent covariance.
   \if{html}{\out{<div class="r6-active-bindings">}}
   \describe{
     \item{\code{B_original}}{regression coefficients (d x p), converted back to
-Y's original units (undoing `NormalBlockData(scale = TRUE)`'s
-column-wise rescaling, if any). Use `model_par$B` instead for the
+Y's original units (undoing \code{NormalBlockData(scale = TRUE)}'s
+column-wise rescaling, if any). Use \code{model_par$B} instead for the
 coefficients on the internal fitting scale.}
 
-    \item{\code{d0}}{number of zi variables (dimensions in X0)}
+    \item{\code{fitted}}{Y values predicted by the model, in Y's original units:
+\verb{X B}, plus the posterior mean of the latent block signals for (V)EM
+fits, with the observed zeros of zero-inflated models set to 0}
 
-    \item{\code{model_par}}{a list with the matrices of the model parameters: B (covariates), dm1 (species variance), Omega (groups precision matrix)). On the internal fitting scale (`self$data$Y`, possibly column-rescaled by `NormalBlockData(scale = TRUE)`) -- use `$B_original`/`$dm1_original` for the same quantities converted back to Y's original units.}
-
-    \item{\code{nb_param}}{number of parameters in the model}
+    \item{\code{model_par}}{a list with the model parameters: B (d x p regression
+coefficients), B0 (zero-inflation coefficients, if any), dm1 (inverse
+noise variances of the variables) and Omega (q x q precision matrix of
+the latent block signals), on the scale of the fit. Use
+\verb{$B_original}/\verb{$dm1_original} for B and dm1 on Y's original scale.}
 
     \item{\code{sparsity_weights}}{(weights associated to each pair of groups)}
 
     \item{\code{dm1_original}}{inverse residual variance per variable
 (1 / Var(Y_j)), converted back to Y's original units. Use
-`model_par$dm1` instead for the internal fitting scale. With
-`noise_covariance = "spherical"`, `model_par$dm1` is a single value
+\code{model_par$dm1} instead for the internal fitting scale. With
+\code{noise_covariance = "spherical"}, \code{model_par$dm1} is a single value
 repeated p times; once
 converted back per-variable, the p values returned here generally
 differ from one another whenever Y's columns were rescaled by
@@ -48,7 +52,7 @@ different factors.}
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-NormalBlockVarBase-initialize}{\code{NormalBlockVarBase$new()}}
-    \item \href{#method-NormalBlockVarBase-warm_start_from}{\code{NormalBlockVarBase$warm_start_from()}}
+    \item \href{#method-NormalBlockVarBase-within_block_correlations}{\code{NormalBlockVarBase$within_block_correlations()}}
     \item \href{#method-NormalBlockVarBase-split}{\code{NormalBlockVarBase$split()}}
     \item \href{#method-NormalBlockVarBase-merge}{\code{NormalBlockVarBase$merge()}}
     \item \href{#method-NormalBlockVarBase-clone}{\code{NormalBlockVarBase$clone()}}
@@ -59,6 +63,7 @@ different factors.}
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="best_of_inits"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-best_of_inits'><code>NormalBlockBase$best_of_inits()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_merge"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_merge'><code>NormalBlockBase$candidates_merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_split"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_split'><code>NormalBlockBase$candidates_split()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="heldout_loglik"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-heldout_loglik'><code>NormalBlockBase$heldout_loglik()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="latent_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-latent_network'><code>NormalBlockBase$latent_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="optimize"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-optimize'><code>NormalBlockBase$optimize()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot'><code>NormalBlockBase$plot()</code></a></span></li>
@@ -67,13 +72,14 @@ different factors.}
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="predict"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-predict'><code>NormalBlockBase$predict()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="print"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-print'><code>NormalBlockBase$print()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="update"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-update'><code>NormalBlockBase$update()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-warm_start_from'><code>NormalBlockBase$warm_start_from()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NormalBlockVarBase-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockVarBase-initialize}{}}}
 \subsection{\code{NormalBlockVarBase$new()}}{
-  Create a new [`NormalBlockVarBase`] object.
+  Create a new \code{\link{NormalBlockVarBase}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockVarBase$new(
@@ -94,38 +100,35 @@ different factors.}
       \item{\code{control}}{structured list of more specific parameters, to generate with NB_control}
       \item{\code{zero_inflation}}{whether the concrete subclass models zero-inflation;
 set by the ZI subclasses themselves, not meant to be set by the end user.
-When `FALSE`, the (costly) zero-inflation probability fit (`kappa`/`B0`)
+When \code{FALSE}, the (costly) zero-inflation probability fit (\code{kappa}/\code{B0})
 is skipped entirely, since it would otherwise never be used downstream.}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`NormalBlockVarBase`] object
+    A new \code{\link{NormalBlockVarBase}} object
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-NormalBlockVarBase-warm_start_from"></a>}}
-\if{latex}{\out{\hypertarget{method-NormalBlockVarBase-warm_start_from}{}}}
-\subsection{\code{NormalBlockVarBase$warm_start_from()}}{
-  Seed this model's starting parameters from another,
-already-optimized model with the same q, instead of a fresh heuristic
-clustering. Used by [NormalBlockVarCollectionSparsity] to warm-start
-each penalty in a sparsity path from the previous one's solution.
+\if{html}{\out{<a id="method-NormalBlockVarBase-within_block_correlations"></a>}}
+\if{latex}{\out{\hypertarget{method-NormalBlockVarBase-within_block_correlations}{}}}
+\subsection{\code{NormalBlockVarBase$within_block_correlations()}}{
+  Checks that the blocks gather positively co-varying
+variables, as the model requires (two variables of a block have a
+positive correlation). Compares, for each block, the empirical
+correlations of the residuals \code{Y - XB} with those implied by the model.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{NormalBlockVarBase$warm_start_from(other)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{other}}{a [NormalBlockVarBase] object, already optimized}
-    }
+    \preformatted{NormalBlockVarBase$within_block_correlations()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    Update the current object in place with `other`'s parameters
+    a data frame with one row per block: \code{block}, \code{size}, the mean
+and minimum of the empirical within-block correlations (\code{mean_cor},
+\code{min_cor}), the proportion of negative ones (\code{prop_negative}), and the
+mean correlation implied by the model (\code{model_cor}). \code{NA} for blocks
+with fewer than two variables.
   }
 }
 
@@ -133,11 +136,10 @@ each penalty in a sparsity path from the previous one's solution.
 \if{html}{\out{<a id="method-NormalBlockVarBase-split"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockVarBase-split}{}}}
 \subsection{\code{NormalBlockVarBase$split()}}{
-  Create a clone of the current [`NormalBlockVarBase`] object after splitting cluster `cl`
-We split the cluster according to the species variances
+  Create a clone of the current \code{\link{NormalBlockVarBase}} object after splitting cluster \code{index}
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{NormalBlockVarBase$split(index, in_place = FALSE)}
+    \preformatted{NormalBlockVarBase$split(index, in_place = FALSE, rule = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -146,11 +148,15 @@ We split the cluster according to the species variances
       \item{\code{index}}{index (integer) of the cluster to split}
       \item{\code{in_place}}{should the split applied to the object itself, or should a copy be sent?
 default FALSE (send a copy)}
+      \item{\code{rule}}{how the members of the cluster are divided: \code{"kmeans"}
+runs a 2-means on their columns of residuals \code{Y - XB}; \code{"noise"} cuts
+them at the median of their noise variance. Default \code{NULL}, i.e.
+\code{"kmeans"} for this family.}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`NormalBlockVarBase`] object
+    A new \code{\link{NormalBlockVarBase}} object
   }
 }
 
@@ -158,7 +164,7 @@ default FALSE (send a copy)}
 \if{html}{\out{<a id="method-NormalBlockVarBase-merge"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockVarBase-merge}{}}}
 \subsection{\code{NormalBlockVarBase$merge()}}{
-  Create a clone of the current [`NormalBlockVarBase`] object after merging clusters `cl1` and `cl2`
+  Create a clone of the current \code{\link{NormalBlockVarBase}} object after merging clusters \code{cl1} and \code{cl2}
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockVarBase$merge(indices, in_place = FALSE)}
@@ -174,7 +180,7 @@ default FALSE (send a copy)}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`NormalBlockVarBase`] object
+    A new \code{\link{NormalBlockVarBase}} object
   }
 }
 

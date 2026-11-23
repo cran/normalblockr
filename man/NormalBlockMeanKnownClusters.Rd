@@ -2,7 +2,7 @@
 % Please edit documentation in R/NormalBlockMeanKnownClusters.R
 \name{NormalBlockMeanKnownClusters}
 \alias{NormalBlockMeanKnownClusters}
-\title{Mean-Block Model with Known Clustering}
+\title{Normal-Block-Mean Model with Known Clustering}
 \description{
 R6 class for a Normal-Block-Mean model with a known clustering.
 }
@@ -10,19 +10,10 @@ R6 class for a Normal-Block-Mean model with a known clustering.
 ex <- generate_normal_block_mean_data(n = 50, p = 20, d = 1, q = 3)
 data <- NormalBlockData$new(ex$Y, ex$X)
 model <- normal_block(data, blocks = ex$parameters$C, model = "mean")
-model$plot()
+plot(model)
 }
 \section{Super classes}{
 \code{\link[normalblockr:NormalBlockBase]{NormalBlockBase}} -> \code{\link[normalblockr:NormalBlockMeanBase]{NormalBlockMeanBase}} -> \code{NormalBlockMeanKnownClusters}
-}
-\section{Active bindings}{
-  \if{html}{\out{<div class="r6-active-bindings">}}
-  \describe{
-    \item{\code{fitted}}{Y values predicted by the model, in Y's original units}
-
-    \item{\code{who_am_I}}{a method to print what model is being fitted}
-  }
-  \if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -36,6 +27,7 @@ model$plot()
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="best_of_inits"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-best_of_inits'><code>NormalBlockBase$best_of_inits()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_merge"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_merge'><code>NormalBlockBase$candidates_merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_split"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_split'><code>NormalBlockBase$candidates_split()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="heldout_loglik"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-heldout_loglik'><code>NormalBlockBase$heldout_loglik()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="latent_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-latent_network'><code>NormalBlockBase$latent_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="optimize"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-optimize'><code>NormalBlockBase$optimize()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot'><code>NormalBlockBase$plot()</code></a></span></li>
@@ -43,17 +35,17 @@ model$plot()
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot_network'><code>NormalBlockBase$plot_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="print"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-print'><code>NormalBlockBase$print()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="update"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-update'><code>NormalBlockBase$update()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-warm_start_from'><code>NormalBlockBase$warm_start_from()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="merge"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-merge'><code>NormalBlockMeanBase$merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="predict"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-predict'><code>NormalBlockMeanBase$predict()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="split"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-split'><code>NormalBlockMeanBase$split()</code></a></span></li>
-  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-warm_start_from'><code>NormalBlockMeanBase$warm_start_from()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NormalBlockMeanKnownClusters-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockMeanKnownClusters-initialize}{}}}
 \subsection{\code{NormalBlockMeanKnownClusters$new()}}{
-  Create a new [`NormalBlockMeanKnownClusters`] object.
+  Create a new \code{\link{NormalBlockMeanKnownClusters}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockMeanKnownClusters$new(data, C, sparsity = 0, control = NB_control())}
@@ -63,14 +55,14 @@ model$plot()
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{data}}{object of NormalBlockData class, with responses and design matrix}
-      \item{\code{C}}{clustering matrix C_jk = 1 if species j belongs to cluster k}
+      \item{\code{C}}{p x q clustering matrix, C_jk = 1 if variable j belongs to cluster k}
       \item{\code{sparsity}}{to apply on variance matrix when calling GLASSO}
       \item{\code{control}}{structured list of more specific parameters, to generate with NB_control}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`NormalBlockMeanKnownClusters`] object
+    A new \code{\link{NormalBlockMeanKnownClusters}} object
   }
 }
 

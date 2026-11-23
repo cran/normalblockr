@@ -16,7 +16,7 @@ set.seed(1)
 n = 100 # Number of samples (number of rows in the matrix of observations)
 p = 40  # Number of entities observed (number of columns in the matrix of observations)
 d = 2   # Number of covariates
-q = 3   # Number of clusters
+q = 6   # Number of clusters
 kappa = 0 # Mean zero-inflation probability (can also be a vector to define one ZI-probability for each variable). kappa = 0 means that there is no zero-inflation.
 omega_structure = "erdos-renyi" # Network structure.
 u_v = c(0.3, 0.1) # Parameters to generate an association matrix from a graph, details given in the bibliography.
@@ -38,7 +38,7 @@ kappa_zi <- rnorm(p, mean = 0.7, sd = 0.05)
 kappa_zi <- unlist(lapply(kappa_zi, f <- function(x) return(max(0, min(x, 0.9)))))
 my_nb_data_zi <- generate_normal_block_var_data(n = n, p = p, d = d, q = 5, kappa = kappa_zi,
                                                 omega_structure = omega_structure, u_v = u_v,
-                                                SNR = SNR, alpha = alpha,
+                                                SNR = SNR, alpha = rep(1/5, 5),
                                                 range_X = range_X, range_D = range_D)
 
 ## ----simulation2-visualization------------------------------------------------
@@ -70,12 +70,20 @@ plot(my_NB)
 ## ----simulation1-NB1-print----------------------------------------------------
 print(my_NB)
 
+## ----simulation1-NB1-extractors-----------------------------------------------
+summary(my_NB)
+coef(my_NB)[, 1:6]
+sigma(my_NB)
+
+## ----simulation1-NB1-within---------------------------------------------------
+my_NB$within_block_correlations()
+
 ## ----simulation1-NB1-plot_network---------------------------------------------
  my_NB$plot_network()
 
 ## ----simulation1-NB2----------------------------------------------------------
 my_NB <- normal_block(data = my_data,
-                      blocks = 3)
+                      blocks = q)
 print(my_NB)
 plot(my_NB)
 
@@ -84,59 +92,67 @@ aricode::ARI(my_NB$clustering, apply(my_nb_data$parameters$C, 1, which.max))
 
 ## ----simulation1-NB3----------------------------------------------------------
 my_NB_unknown <- normal_block(data = my_data,
-                              blocks = 2:5)
+                              blocks = 2:8)
+
+## ----simulation1-NB3-print----------------------------------------------------
+my_NB_unknown
 
 ## ----simulation1-NB3-plot-----------------------------------------------------
 plot(my_NB_unknown)
 
 ## ----simulation1-NB3-model-selection------------------------------------------
-myNB_3   <- my_NB_unknown$get_model(3)
+myNB_6   <- my_NB_unknown$get_model(6)
 myNB_BIC <- my_NB_unknown$get_best_model("BIC")
+myNB_BIC$q
+
+## ----simulation1-NB3-cv, fig.width=6, fig.height=4----------------------------
+set.seed(1)
+my_NB_cv <- normal_block_cv(my_data, blocks = 2:8, folds = 5)
+my_NB_cv
+plot(my_NB_cv)
 
 ## ----simulation1-NB-fixed-sparsity--------------------------------------------
 my_NB_sparse_low <- normal_block(data = my_data,
                                  blocks = my_nb_data$parameters$C,
-                                 sparsity = 0.1)
+                                 sparsity = 0.05,
+                                 control = NB_control(verbose = FALSE))
 my_NB_sparse_high <- normal_block(data = my_data,
                                   blocks = my_nb_data$parameters$C,
-                                  sparsity = 10)
+                                  sparsity = 0.2,
+                                  control = NB_control(verbose = FALSE))
+c(low = my_NB_sparse_low$n_edges, high = my_NB_sparse_high$n_edges)
 
-## ----simulation1-NB-low-sparsity-plot-----------------------------------------
-my_NB_sparse_low$plot_network()
-
-## ----simulation1-NB-high-sparsity-plot----------------------------------------
-my_NB_sparse_high$plot_network()
-
-## ----simulation1-NB-changing-sparsity-----------------------------------------
+## ----simulation1-NB-changing-sparsity, warning = FALSE------------------------
 my_NB_sparse <- normal_block(data = my_data,
                              blocks = my_nb_data$parameters$C,
-                             sparsity = TRUE)
-
-## ----simulation1-NB-changing-sparsity-plot------------------------------------
+                             sparsity = TRUE,
+                             control = NB_control(verbose = FALSE))
 plot(my_NB_sparse)
 
-## ----simulation1-NB-changing-sparsity-model-selection-------------------------
-myNB_sparse_0.1   <- my_NB_sparse$get_model(0.1)
+## ----simulation1-NB-changing-sparsity-model-selection, warning = FALSE--------
 myNB_sparse_BIC   <- my_NB_sparse$get_best_model("BIC")
+set.seed(1)
+myNB_sparse_StARS <- my_NB_sparse$get_best_model("StARS")
+c(BIC = myNB_sparse_BIC$n_edges, StARS = myNB_sparse_StARS$n_edges)
 
-## ----simulation1-NB-sparse_unknown--------------------------------------------
-my_NB_sparse_unknown <-  normal_block(data = my_data,
-                                      blocks = 2:6,
-                                      sparsity = TRUE)
+## ----simulation1-NB-stars-vs-truth--------------------------------------------
+true_net  <- my_nb_data$parameters$Omega != 0
+stars_net <- as.matrix(myNB_sparse_StARS$latent_network("support")) != 0
+table(simulated = true_net[upper.tri(true_net)], StARS = stars_net[upper.tri(stars_net)])
 
-## ----simulation1-NB-sparse_unknown-who-am-I-----------------------------------
-my_NB_sparse_unknown$who_am_I
+## ----simulation1-NB-stars-network---------------------------------------------
+myNB_sparse_StARS$plot_network(layout = igraph::layout_with_fr)
 
-## ----simulation1-NB-sparse_unknown-plot---------------------------------------
-plot(my_NB_sparse_unknown, "BIC")
-
-## ----simulation1-NB-sparse_unknown-selection----------------------------------
-my_NB_sparse_3     <- my_NB_sparse_unknown$get_model(3)
-my_NB_sparse_3_0.1 <- my_NB_sparse_unknown$get_model(3, 0.1)
+## ----simulation1-NB-sparse_unknown, warning = FALSE---------------------------
+my_NB_sparse_unknown <- normal_block(data = my_data,
+                                     blocks = 5:7,
+                                     sparsity = TRUE,
+                                     control = NB_control(verbose = FALSE))
+my_NB_sparse_unknown$get_model(6)
 
 ## ----simulation2-NB-----------------------------------------------------------
 my_NB_zi <- normal_block(data = my_data_zi,
-                         blocks = 4,
+                         blocks = 5,
                          zero_inflation = TRUE)
 
 ## ----simulation2-NB-plot------------------------------------------------------

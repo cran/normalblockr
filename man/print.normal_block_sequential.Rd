@@ -7,14 +7,20 @@
 \method{print}{normal_block_sequential}(x, ...)
 }
 \arguments{
-\item{x}{an object of class `normal_block_sequential`}
+\item{x}{an object of class \code{normal_block_sequential}}
 
 \item{...}{not used, only here for S3 compatibility}
 }
 \value{
-Invisibly returns `x`.
+Invisibly returns \code{x}.
 }
 \description{
 Reports both stages and, when \pkg{aricode} is available, how
 related the two partitions are.
+}
+\examples{
+ex   <- generate_normal_block_mean_data(n = 80, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex$Y, ex$X)
+fit  <- normal_block_sequential(data, blocks_mean = 3, blocks_var = 2)
+print(fit)
 }

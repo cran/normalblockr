@@ -12,8 +12,19 @@
 \item{...}{not used, only here for S3 compatibility}
 }
 \value{
-A matrix of coefficients extracted from the model.
+A d x p (variance-block) or d x q (mean-block) matrix.
 }
 \description{
-Extract coefficients from a normal-block model.
+Extract the regression coefficients B of a normal-block model.
+For the variance-block models, one column per variable, on the original
+scale of Y even when the variables were rescaled for the fit. For the
+mean-block models, one column per cluster, on the scale of the fit (the
+original one by default), since a profile is shared by variables of
+different scales.
+}
+\examples{
+ex_data <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex_data$Y, ex_data$X)
+model <- normal_block(data, blocks = 3, control = NB_control(verbose = FALSE))
+coef(model)[, 1:5]
 }

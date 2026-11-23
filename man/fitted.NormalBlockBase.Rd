@@ -15,5 +15,16 @@
 A matrix of fitted values extracted from the object.
 }
 \description{
-Extract fitted values from a normal-block model.
+Extract the fitted values of a normal-block model, on the
+original scale of Y. For the variance-block models, they include the
+posterior mean of the latent block signals, \verb{X B + E[W] C'}; for the
+mean-block models, they are \verb{X B C'} (with the posterior cluster
+probabilities when the clustering is unknown). Zero-inflated models set
+the observed zeros to 0.
+}
+\examples{
+ex_data <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex_data$Y, ex_data$X)
+model <- normal_block(data, blocks = 3, control = NB_control(verbose = FALSE))
+head(fitted(model)[, 1:5])
 }

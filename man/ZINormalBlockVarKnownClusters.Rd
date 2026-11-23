@@ -2,7 +2,7 @@
 % Please edit documentation in R/ZINormalBlockVarKnownClusters.R
 \name{ZINormalBlockVarKnownClusters}
 \alias{ZINormalBlockVarKnownClusters}
-\title{Zero-Inflated Normal-Block Model with Known Clustering}
+\title{Zero-Inflated Normal-Block-Var Model with Known Clustering}
 \description{
 R6 class for a zero-inflated normal-block model with a known clustering.
 }
@@ -21,15 +21,7 @@ model$clustering
   \describe{
     \item{\code{posterior_par}}{a list with the parameters of posterior distribution W | Y}
 
-    \item{\code{entropy}}{Entropy of the conditional distribution}
-
-    \item{\code{nb_param}}{number of parameters in the model}
-
-    \item{\code{model_par}}{a list with model parameters: B (covariates), dm1 (species variance), Omega (groups precision matrix), kappa (zero-inflation probabilities)}
-
-    \item{\code{fitted}}{Y values predicted by the model, in Y's original units}
-
-    \item{\code{who_am_I}}{a method to print what model is being fitted}
+    \item{\code{model_par}}{the parameters of \link{NormalBlockVarBase} (B, B0, dm1, Omega), plus kappa (zero-inflation probabilities)}
   }
   \if{html}{\out{</div>}}
 }
@@ -45,6 +37,7 @@ model$clustering
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="best_of_inits"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-best_of_inits'><code>NormalBlockBase$best_of_inits()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_merge"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_merge'><code>NormalBlockBase$candidates_merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_split"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_split'><code>NormalBlockBase$candidates_split()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="heldout_loglik"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-heldout_loglik'><code>NormalBlockBase$heldout_loglik()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="latent_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-latent_network'><code>NormalBlockBase$latent_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="optimize"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-optimize'><code>NormalBlockBase$optimize()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot'><code>NormalBlockBase$plot()</code></a></span></li>
@@ -53,16 +46,17 @@ model$clustering
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="predict"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-predict'><code>NormalBlockBase$predict()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="print"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-print'><code>NormalBlockBase$print()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="update"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-update'><code>NormalBlockBase$update()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-warm_start_from'><code>NormalBlockBase$warm_start_from()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockVarBase" data-id="merge"><a href='../../normalblockr/html/NormalBlockVarBase.html#method-NormalBlockVarBase-merge'><code>NormalBlockVarBase$merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockVarBase" data-id="split"><a href='../../normalblockr/html/NormalBlockVarBase.html#method-NormalBlockVarBase-split'><code>NormalBlockVarBase$split()</code></a></span></li>
-  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockVarBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockVarBase.html#method-NormalBlockVarBase-warm_start_from'><code>NormalBlockVarBase$warm_start_from()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockVarBase" data-id="within_block_correlations"><a href='../../normalblockr/html/NormalBlockVarBase.html#method-NormalBlockVarBase-within_block_correlations'><code>NormalBlockVarBase$within_block_correlations()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-ZINormalBlockVarKnownClusters-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-ZINormalBlockVarKnownClusters-initialize}{}}}
 \subsection{\code{ZINormalBlockVarKnownClusters$new()}}{
-  Create a new [`ZINormalBlockVarKnownClusters`] object.
+  Create a new \code{\link{ZINormalBlockVarKnownClusters}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{ZINormalBlockVarKnownClusters$new(
@@ -77,14 +71,14 @@ model$clustering
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{data}}{object of NormalBlockData class, with responses and design matrix}
-      \item{\code{C}}{clustering matrix C_jk = 1 if species j belongs to cluster k}
+      \item{\code{C}}{p x q clustering matrix, C_jk = 1 if variable j belongs to cluster k}
       \item{\code{sparsity}}{to apply on variance matrix when calling GLASSO}
       \item{\code{control}}{structured list of more specific parameters, to generate with NB_control}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`ZINormalBlockVarKnownClusters`] object
+    A new \code{\link{ZINormalBlockVarKnownClusters}} object
   }
 }
 

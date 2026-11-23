@@ -2,7 +2,7 @@
 ##  CLASS NormalBlockVarUnknownClusters ############################
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Normal-Block Model with Unknown Clustering
+#' Normal-Block-Var Model with Unknown Clustering
 #'
 #' R6 class for a normal-block model with a fixed number of clusters (but
 #' unknown clustering).
@@ -20,9 +20,6 @@ NormalBlockVarUnknownClusters <- R6::R6Class(
   ## PUBLIC MEMBERS --------------------------------------
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   public = list(
-    #' @field fixed_tau whether tau should be fixed at clustering_init during optimization, useful for stability selection
-    fixed_tau = NULL,
-
     #' @description Create a new [`NormalBlockVarUnknownClusters`] object.
     #' @param data contains the matrix of responses (Y) and the design matrix (X).
     #' @param q required number of groups
@@ -31,7 +28,6 @@ NormalBlockVarUnknownClusters <- R6::R6Class(
     #' @return A new [`NormalBlockVarUnknownClusters`] object
     initialize = function(data, q, sparsity = 0, control = NB_control()) {
       super$initialize(data, q, sparsity, control)
-      self$fixed_tau <- control$fixed_tau
     }
   ),
 
@@ -39,7 +35,6 @@ NormalBlockVarUnknownClusters <- R6::R6Class(
   ## PRIVATE MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   private = list(
-
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Methods for heuristic inference -----------------------
 
@@ -78,7 +73,8 @@ NormalBlockVarUnknownClusters <- R6::R6Class(
         B0 = init$B, dm1_0 = init$dm1, Omega0 = init$Omega,
         C0 = init$C, alpha0 = init$alpha, M0 = init$M, S0 = init$S,
         sparsity = self$sparsity, sparsity_weights = self$sparsity_weights,
-        noise_covariance = private$res_covariance, fixed_tau = self$fixed_tau,
+        noise_covariance = private$res_covariance, fixed_tau = isTRUE(control$fixed_tau),
+        accelerate = !isFALSE(control$acceleration),
         niter = control$niter, threshold = control$threshold
       )
       private$niter <- res$niter
@@ -91,35 +87,12 @@ NormalBlockVarUnknownClusters <- R6::R6Class(
   ##  ACTIVE BINDINGS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   active = list(
-    #' @field model_par a list with the matrices of the model parameters: B (covariates), dm1 (species variance), Omega (groups precision matrix))
+    #' @field model_par the parameters of [NormalBlockVarBase] (B, B0, dm1, Omega), plus alpha (cluster proportions)
     model_par  = function() {
       parameters       <- super$model_par
       parameters$alpha <- private$alpha
       parameters},
-    #' @field nb_param number of parameters in the model
-    nb_param = function() {as.integer(super$nb_param + self$q - 1)}, # adding alpha
     #' @field var_par a list with the matrices of the variational parameters: M (means), S (variances), tau (posterior group probabilities)
-    var_par    = function() list(M = private$M,  S = private$S, tau = private$C),
-    #' @field entropy Entropy of the conditional distribution
-    entropy    = function() {
-      if (!private$approx){
-        res <- .5 * self$n * self$q * log(2 * pi * exp(1)) + .5 * self$n * sum(log(private$S))
-        res <- res - sum(xlogx(private$C))
-      } else {res <- NA}
-      res
-    },
-    #' @field fitted Y values predicted by the model, in Y's original units
-    fitted = function(){
-      res <- if (private$approx) {
-        self$data$X %*% private$B
-      } else {
-        self$data$X %*% private$B + tcrossprod(private$M, private$C)
-      }
-      private$rescale_to_original(res)
-    },
-    #' @field who_am_I a method to print what model is being fitted
-    who_am_I  = function() {
-      paste(private$res_covariance, "normal-block-var model with", self$q, "unknown blocks")
-    }
+    var_par    = function() list(M = private$M,  S = private$S, tau = private$C)
   )
 )

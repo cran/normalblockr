@@ -7,13 +7,19 @@
 \method{print}{summary.NormalBlockCollection}(x, ...)
 }
 \arguments{
-\item{x}{An object of class `summary.NormalBlockCollection`.}
+\item{x}{An object of class \code{summary.NormalBlockCollection}.}
 
 \item{...}{not used, only here for S3 compatibility}
 }
 \value{
-Invisibly returns `x`.
+Invisibly returns \code{x}.
 }
 \description{
-Print method for objects returned by [summary.NormalBlockCollection()].
+Print method for objects returned by \code{\link[=summary.NormalBlockCollection]{summary.NormalBlockCollection()}}.
+}
+\examples{
+ex_data <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex_data$Y, ex_data$X)
+collection <- normal_block(data, blocks = 2:4, control = NB_control(verbose = FALSE))
+print(summary(collection))
 }

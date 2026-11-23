@@ -34,14 +34,15 @@ Y <- log(1 + onema$biomass)
 data <- NormalBlockData$new(Y, X)
 
 ## ----fit-zi-------------------------------------------------------------------
-out <- normal_block(data, blocks = 2:8, zero_inflation = TRUE)
+out <- normal_block(data, blocks = 2:8, zero_inflation = TRUE,
+                    control = NB_control(clustering_init = "ward2", refine = FALSE))
 
 ## ----plot-zi------------------------------------------------------------------
-out$plot(criteria = c("BIC", "EBIC", "deviance"))
+plot(out, criteria = c("BIC", "EBIC", "deviance"))
 
 ## ----refine-zi----------------------------------------------------------------
 out$refine()
-out$plot(criteria = c("BIC", "EBIC", "deviance"))
+plot(out, criteria = c("BIC", "EBIC", "deviance"))
 
 ## ----select-zi----------------------------------------------------------------
 myModel <- out$get_best_model("EBIC")
@@ -61,11 +62,17 @@ all.equal(kappa_hat, colMeans(onema$biomass == 0), check.attributes = FALSE)
 sort(round(kappa_hat, 2), decreasing = TRUE)[1:5] # almost always structurally absent
 sort(round(kappa_hat, 2))[1:5]                    # almost always present in some quantity
 
-## ----sparsify-zi--------------------------------------------------------------
-out_sp <- normal_block(data, blocks = myModel$q, sparsity = TRUE, zero_inflation = TRUE)
-out_sp$plot(c("BIC", "EBIC"))
-out_sp$plot(c("ICL", "deviance"))
+## ----sparsify-zi, warning = FALSE---------------------------------------------
+C_selected <- model.matrix(~ 0 + factor(myModel$clustering))
+out_sp <- normal_block(data, blocks = C_selected, sparsity = TRUE, zero_inflation = TRUE,
+                       control = NB_control(verbose = FALSE))
+plot(out_sp, criteria = c("BIC", "EBIC", "deviance"))
 
-## ----network-zi---------------------------------------------------------------
-out_sp$get_best_model("ICL")$plot_network()
+## ----stars-zi, warning = FALSE------------------------------------------------
+set.seed(1)
+sparse_zi <- out_sp$get_best_model("StARS")
+paste0("StARS keeps ", sparse_zi$n_edges, " edges out of ", choose(myModel$q, 2), ".")
+
+## ----network-zi, fig.width=5, fig.height=5------------------------------------
+sparse_zi$plot_network(node.labels = seq_len(sparse_zi$q), layout = igraph::layout_with_fr)
 

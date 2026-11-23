@@ -2,11 +2,11 @@
 % Please edit documentation in R/ZINormalBlockMeanUnknownClusters.R
 \name{ZINormalBlockMeanUnknownClusters}
 \alias{ZINormalBlockMeanUnknownClusters}
-\title{Zero-Inflated Mean-Block Model with Unknown Clustering}
+\title{Zero-Inflated Normal-Block-Mean Model with Unknown Clustering}
 \description{
 R6 class for a zero-inflated Normal-Block-Mean model with a fixed number of
 clusters (but unknown clustering), inferred by variational EM. Sigma is
-diagonal or spherical here. See [NormalBlockMeanBase] for why a full one
+diagonal or spherical here. See \link{NormalBlockMeanBase} for why a full one
 is out of reach under a mask.
 }
 \examples{
@@ -22,17 +22,11 @@ model$clustering
 \section{Active bindings}{
   \if{html}{\out{<div class="r6-active-bindings">}}
   \describe{
-    \item{\code{fitted}}{Y values predicted by the model, in Y's original units}
-
     \item{\code{var_par}}{a list with the variational parameter: tau (posterior group probabilities)}
 
-    \item{\code{model_par}}{a list with model parameters: B, Omega and kappa (zero-inflation probabilities)}
-
-    \item{\code{nb_param}}{number of parameters in the model}
-
-    \item{\code{entropy}}{Entropy of the conditional distribution}
-
-    \item{\code{who_am_I}}{a method to print what model is being fitted}
+    \item{\code{model_par}}{the parameters of \link{NormalBlockMeanBase} (B, Omega),
+plus B0 (zero-inflation coefficients), kappa (zero-inflation
+probabilities) and alpha (cluster proportions)}
   }
   \if{html}{\out{</div>}}
 }
@@ -48,6 +42,7 @@ model$clustering
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="best_of_inits"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-best_of_inits'><code>NormalBlockBase$best_of_inits()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_merge"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_merge'><code>NormalBlockBase$candidates_merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="candidates_split"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-candidates_split'><code>NormalBlockBase$candidates_split()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="heldout_loglik"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-heldout_loglik'><code>NormalBlockBase$heldout_loglik()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="latent_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-latent_network'><code>NormalBlockBase$latent_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="optimize"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-optimize'><code>NormalBlockBase$optimize()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot'><code>NormalBlockBase$plot()</code></a></span></li>
@@ -55,17 +50,17 @@ model$clustering
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="plot_network"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-plot_network'><code>NormalBlockBase$plot_network()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="print"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-print'><code>NormalBlockBase$print()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="update"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-update'><code>NormalBlockBase$update()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockBase.html#method-NormalBlockBase-warm_start_from'><code>NormalBlockBase$warm_start_from()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="merge"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-merge'><code>NormalBlockMeanBase$merge()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="predict"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-predict'><code>NormalBlockMeanBase$predict()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="split"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-split'><code>NormalBlockMeanBase$split()</code></a></span></li>
-  <li><span class="pkg-link" data-pkg="normalblockr" data-topic="NormalBlockMeanBase" data-id="warm_start_from"><a href='../../normalblockr/html/NormalBlockMeanBase.html#method-NormalBlockMeanBase-warm_start_from'><code>NormalBlockMeanBase$warm_start_from()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-ZINormalBlockMeanUnknownClusters-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-ZINormalBlockMeanUnknownClusters-initialize}{}}}
 \subsection{\code{ZINormalBlockMeanUnknownClusters$new()}}{
-  Create a new [`ZINormalBlockMeanUnknownClusters`] object.
+  Create a new \code{\link{ZINormalBlockMeanUnknownClusters}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{ZINormalBlockMeanUnknownClusters$new(
@@ -87,7 +82,7 @@ model$clustering
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A new [`ZINormalBlockMeanUnknownClusters`] object
+    A new \code{\link{ZINormalBlockMeanUnknownClusters}} object
   }
 }
 

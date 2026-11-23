@@ -1,21 +1,21 @@
 ###############################################################################
-## NormalBlockMeanCollectionSparsity/ClustersSparsity (R/NormalBlockMeanCollection*.R):
+## NormalBlockMeanCollectionSparsity (R/NormalBlockMeanCollectionSparsity.R):
 ## the sparsity path over the p x p Omega under noise_covariance = "full",
-## its interaction with q (crossed sparsity/clusters), get_best_model()/plot(),
-## the n > p requirement a full Sigma imposes unless sparsity regularizes it,
-## and the noise_covariance/sparsity consistency checks.
-## Use pre-save testdata (seed are hard to handle in testhat)
+## get_best_model()/plot(), the n > p requirement a full Sigma imposes unless
+## sparsity regularizes it, and the noise_covariance/sparsity consistency
+## checks. StARS is in test-stability-selection.R.
+## Frozen fixture (seeds are unreliable inside testthat)
 testdata <- readRDS("testdata/testdata_normal_mean_block.RDS")
 Y <- testdata$Y
 X <- testdata$X
 C <- testdata$parameters$C ; q <- ncol(C)
 
-fast <- NB_control(verbose = FALSE, n_sparsity_penalties = 5, niter = 20)
+fast <- NB_control(verbose = FALSE, n_sparsity_penalties = 5)
 data <- NormalBlockData$new(Y, X)
+set.seed(1)
+coll <- normal_block(data, blocks = q, sparsity = TRUE, model = "mean", control = fast)
 
 test_that("mean-block sparsity path sparsifies Omega monotonically", {
-  coll <- normal_block(data, blocks = q, sparsity = TRUE, model = "mean", control = fast)
-
   expect_s3_class(coll, "NormalBlockMeanCollectionSparsity")
   expect_length(coll$models, 5)
   expect_true(all(diff(coll$sparsity) < 0))       # decreasing penalties
@@ -30,25 +30,26 @@ test_that("a known clustering is accepted along the sparsity path", {
 })
 
 test_that("get_best_model()/plot() work on the mean-block sparsity path", {
-  coll <- normal_block(data, blocks = q, sparsity = TRUE, model = "mean", control = fast)
   for (crit in c("BIC", "EBIC", "ICL")) {
     best <- coll$get_best_model(crit)
     expect_s3_class(best, "NormalBlockMeanUnknownClusters")
     expect_equal(best[[crit]], min(coll$criteria[[crit]]))
   }
   expect_s3_class(coll$plot(c("BIC", "EBIC")), "ggplot")
-  expect_message(coll$get_model(-1), "closest penalty")
+  expect_message(closest <- coll$get_model(-1), "closest penalty")
+  expect_equal(closest$sparsity, min(coll$sparsity))
 })
 
-test_that("mean-block models require n > p unless the penalty regularizes Omega", {
+test_that("only a full, unpenalized Sigma requires n > p", {
   narrow <- NormalBlockData$new(Y[1:(ncol(Y) - 2), , drop = FALSE],
                                 X[1:(ncol(Y) - 2), , drop = FALSE])
-  full <- NB_control(verbose = FALSE, n_sparsity_penalties = 5, niter = 20,
-                     noise_covariance = "full")
-  expect_error(normal_block(narrow, blocks = q, model = "mean", control = full),
+  expect_error(normal_block(narrow, blocks = q, model = "mean",
+                            control = NB_control(verbose = FALSE, noise_covariance = "full")),
                "need n > p", fixed = TRUE)
-  expect_no_error(
-    normal_block(narrow, blocks = q, sparsity = TRUE, model = "mean", control = fast))
+  for (nc in c("diagonal", "spherical"))
+    expect_no_error(normal_block(narrow, blocks = q, model = "mean",
+                                 control = NB_control(verbose = FALSE, noise_covariance = nc)))
+  expect_no_error(normal_block(narrow, blocks = q, sparsity = TRUE, model = "mean", control = fast))
 })
 
 test_that("the mean-block objective is penalized, so $loglik is the plain ELBO", {
@@ -60,16 +61,6 @@ test_that("the mean-block objective is penalized, so $loglik is the plain ELBO",
   expect_gt(model$loglik, tail(model$objective, 1))
 })
 
-test_that("q and sparsity can be crossed for mean-block models", {
-  coll <- normal_block(data, blocks = 2:3, sparsity = TRUE, model = "mean",
-                       control = NB_control(verbose = FALSE, n_sparsity_penalties = 3, niter = 15))
-  expect_s3_class(coll, "NormalBlockMeanCollectionClustersSparsity")
-  expect_equal(nrow(coll$criteria), 6)
-  expect_s3_class(coll$get_model(2), "NormalBlockMeanCollectionSparsity")
-  expect_s3_class(coll$get_best_model("BIC"), "NormalBlockMeanBase")
-  expect_s3_class(coll$plot("BIC"), "ggplot")
-})
-
 test_that("sparsity implies a full Sigma unless one is named explicitly", {
   shape <- function(m) m$.__enclos_env__$private$res_covariance
 
@@ -77,7 +68,6 @@ test_that("sparsity implies a full Sigma unless one is named explicitly", {
                "diagonal")
   expect_equal(shape(normal_block(data, blocks = q, sparsity = 0.3, model = "mean",
                                   control = fast)), "full")
-  coll <- normal_block(data, blocks = q, sparsity = TRUE, model = "mean", control = fast)
   expect_true(all(sapply(coll$models, shape) == "full"))
 
   ## asking for both explicitly is contradictory, and says so

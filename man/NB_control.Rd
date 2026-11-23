@@ -2,7 +2,7 @@
 % Please edit documentation in R/normal_block.R
 \name{NB_control}
 \alias{NB_control}
-\title{NB_control}
+\title{Control Parameters for Normal-Block Models}
 \usage{
 NB_control(
   niter = 500,
@@ -17,75 +17,89 @@ NB_control(
   verbose = TRUE,
   heuristic = FALSE,
   noise_covariance = NULL,
-  refine = FALSE
+  refine = TRUE,
+  acceleration = NULL
 )
 }
 \arguments{
-\item{niter}{number of iterations in model optimization}
+\item{niter}{maximal number of (V)EM iterations.}
 
-\item{threshold}{loglikelihood / elbo threshold under which optimization stops}
+\item{threshold}{the (V)EM stops when the objective (log-likelihood or
+ELBO) increases by less than this. A negative value runs exactly \code{niter}
+iterations, without the warning issued when \code{niter} is reached.}
 
 \item{fixed_point_niter}{number of sweeps of the tau update for
-Normal-Block-Mean with unknown clusters. Each sweep visits the rows of
-tau sequentially and maximizes the ELBO exactly in each, so it can never
-decrease the ELBO.}
+Normal-Block-Mean models with unknown clusters. Each sweep visits the rows
+of tau sequentially and maximizes the ELBO exactly in each, so it can
+never decrease the ELBO.}
 
-\item{sparsity_weights}{weights with which the penalty should be applied in case
-sparsity is required, non-0 values on the diagonal mean diagonal shall be
-penalized too (default is non-penalized diagonal and 1s off-diagonal)}
+\item{sparsity_weights}{a symmetric matrix of weights applied to the
+penalty, entry by entry: q x q (variance-block) or p x p (mean-block). By
+default, 1 off the diagonal and 0 on it (the diagonal is not penalized).}
 
-\item{sparsity_penalties}{list of penalties the user wants to test, other parameters
-are only used if penalties is not specified}
+\item{sparsity_penalties}{the penalties of a sparsity path (\code{sparsity = TRUE}). By default, \code{n_sparsity_penalties} values from the smallest
+penalty that removes every edge down to \code{min_ratio} times it, on a log
+scale.}
 
-\item{n_sparsity_penalties}{number of penalties to test.}
+\item{n_sparsity_penalties}{number of penalties of the default path.}
 
-\item{min_ratio}{ratio for sparsity between max penalty (0 edge penalty) and min penalty to test}
+\item{min_ratio}{ratio between the smallest and the largest penalty of the
+default path.}
 
-\item{fixed_tau}{whether tau should be fixed at clustering_init during optimization
-useful for calls to fixed_q models in stability_selection}
+\item{fixed_tau}{whether the posterior cluster probabilities stay at their
+initial value (\code{clustering_init}) during the optimization; used to refit
+a sparsity path with its clustering held fixed (stability selection).}
 
 \item{clustering_init}{how to obtain the initial clustering of the q
 unknown blocks: a heuristic name ("ward2", "kmeans", "sbm" or
 "spectral"), an actual clustering (a vector of labels or a p x q indicator
 matrix, or a list of either per q for a collection), or "best_of_inits" to
 try several heuristics per model and keep the best-ELBO fit (see
-[NormalBlockVarBase]'s `best_of_inits()`; not supported with `sparsity =
-TRUE`). Default `NULL`, resolved per model family at fit time: "ward2"
-for variance-block models, "kmeans" for mean-block models ("ward2" was
-benchmarked substantially worse there -- see [NormalBlockMeanBase]).
-See `inst/methods_initialization_and_refine.md` for the
-heuristics' rationale, why no single one dominates, and how this interacts
-with `refine` (below).}
+\link{NormalBlockBase}'s \code{best_of_inits()}; not supported with \code{sparsity = TRUE}). Default \code{NULL}, i.e. "kmeans" for both model families; "ward2"
+can work better on zero-inflated abundance data.}
 
-\item{verbose}{telling if information should be printed during optimization}
+\item{verbose}{whether to print the progress of the optimization.}
 
 \item{heuristic}{whether to use the heuristic approach (moment-based, no (V)EM
 recursion) instead of the full (V)EM. Default is FALSE. In heuristic mode, no
-likelihood/ELBO is computed, so `entropy`, `loglik`, `BIC`, `ICL` and `EBIC`
-are all `NA` on the resulting model.}
+likelihood/ELBO is computed, so \code{entropy}, \code{loglik}, \code{BIC}, \code{ICL} and \code{EBIC}
+are all \code{NA} on the resulting model.}
 
 \item{noise_covariance}{shape of the residual covariance. Variance-block
 models accept "diagonal" (variable-specific) or "spherical" (common);
 mean-block models, whose Sigma is the full p x p residual covariance, also
-accept "full". Default `NULL`, resolved per model family at fit time to
-"diagonal" -- except for a mean-block model with `sparsity > 0`, which
+accept "full". Default \code{NULL}, resolved per model family at fit time to
+"diagonal" -- except for a mean-block model with \code{sparsity > 0}, which
 implies "full" since a penalty on a diagonal precision matrix would have
-nothing to act on (explicitly asking for both is an error). The mean-block
-"diagonal"/"spherical" variants need no matrix inversion, hence no
-`n > p` requirement, and they select the number of clusters markedly
-better than a full Sigma once p approaches n: the p(p+1)/2 covariance
-parameters otherwise drown the mean structure BIC/ICL are weighing. Use
-"full" when the residual associations are themselves of interest.}
+nothing to act on (explicitly asking for both is an error). A full Sigma
+has many parameters and needs n > p; use it when the residual associations
+between variables are of interest.}
 
-\item{refine}{for [NormalBlockVarCollectionClusters] only: whether
-`optimize()` should automatically call `refine()` afterwards. Default
-`FALSE` since it adds real cost; call `collection$refine()` directly at
-any point afterwards for the same effect without setting this.}
+\item{refine}{for collections over a range of cluster counts (both
+families): whether \code{optimize()} automatically calls \code{refine()} afterwards.
+Default \code{TRUE}: the split and merge search repairs the poor local optima
+that independent fits can leave, at a few times the cost of the
+collection. With \code{FALSE}, \code{collection$refine()} can be called later.}
+
+\item{acceleration}{whether the (V)EM is accelerated by SQUAREM
+(Varadhan & Roland, 2008), an extrapolation built on two successive (V)EM
+steps and accepted only if it does not lower the objective. Default \code{NULL}:
+on, except for mean-block models with a diagonal or spherical Sigma, whose
+EM is exact and fast. \code{TRUE} or \code{FALSE} forces it. Never used when
+\code{sparsity > 0}.}
 }
 \value{
-A named list of parameters to pass to [normal_block()]'s `control`
+A named list of parameters to pass to \code{\link[=normal_block]{normal_block()}}'s \code{control}
 argument.
 }
 \description{
 Control the model settings and various optimization parameters
+}
+\examples{
+ex_data <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex_data$Y, ex_data$X)
+## silent fits, without the split and merge search
+ctrl <- NB_control(verbose = FALSE, refine = FALSE)
+collection <- normal_block(data, blocks = 2:4, control = ctrl)
+summary(collection)
 }

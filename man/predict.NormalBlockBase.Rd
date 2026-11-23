@@ -2,12 +2,12 @@
 % Please edit documentation in R/NormalBlockBase-S3methods.R
 \name{predict.NormalBlockBase}
 \alias{predict.NormalBlockBase}
-\title{Predict Method for Variance-Block Models}
+\title{Predict Method for Normal-Block Models}
 \usage{
 \method{predict}{NormalBlockBase}(object, new_X, ...)
 }
 \arguments{
-\item{object}{An object of class NormalBlockVarBase.}
+\item{object}{An object of class NormalBlockBase.}
 
 \item{new_X}{New set of covariates.}
 
@@ -17,7 +17,16 @@
 A n*p prediction matrix for new observations
 }
 \description{
-Predicts observations Y for new covariates X. Specific to the
-variance-block family: the mean-block models have their own formula
-(mu = C B' X).
+Predicts the mean of the observations Y for new covariates X,
+on the original scale of Y: \verb{B' X} for the variance-block models (the
+latent block signals, centered, average out; unlike \code{\link[=fitted]{fitted()}}, which adds
+their posterior mean for the training observations), \verb{C B' X} for the
+mean-block models. For zero-inflated models, the mean of the Gaussian
+component.
+}
+\examples{
+ex_data <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
+data <- NormalBlockData$new(ex_data$Y, ex_data$X)
+model <- normal_block(data, blocks = 3, control = NB_control(verbose = FALSE))
+predict(model, ex_data$X[1:3, , drop = FALSE])[, 1:5]
 }

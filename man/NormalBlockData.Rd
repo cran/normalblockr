@@ -7,6 +7,29 @@
 R6 class holding the responses and design matrix used to fit a
 normal-block model.
 }
+\section{Rescaling Y (\code{scale})}{
+
+Each column of Y can be divided by its own standard deviation before
+fitting. \code{scale = NULL} (the default) leaves the choice to the model
+family, resolved when a model is fitted: rescaled for variance-block
+models, raw for mean-block ones; \code{TRUE} or \code{FALSE} forces it for both.
+Columns are never centered: the model's own intercept already absorbs each
+variable's mean.
+
+The two families need opposite defaults. A variance-block model loads every
+variable of a block on the same latent signal with the same weight, while on
+real data the variables of a block may carry that signal with different
+amplitudes; rescaling evens them out. A mean-block model shares a mean
+profile within a block, which a division by variable-specific standard
+deviations would break.
+
+The resulting \code{B}, \code{Omega} and clustering are properties of the data the
+model was fitted on; with rescaled data, use \verb{$B_original},
+\verb{$dm1_original} and \code{\link[=fitted]{fitted()}} for quantities in Y's original units (a
+shared block covariance has no unique original-scale counterpart, since
+the scaling factors differ within a block).
+}
+
 \examples{
 ex <- generate_normal_block_var_data(n = 50, p = 20, d = 1, q = 3)
 data <- NormalBlockData$new(ex$Y, ex$X)
@@ -15,10 +38,13 @@ c(n = data$n, p = data$p, d = data$d)
 \section{Public fields}{
   \if{html}{\out{<div class="r6-fields">}}
   \describe{
-    \item{\code{Y}}{the matrix of responses (rescaled column-wise if `scale = TRUE`)}
+    \item{\code{Y}}{the matrix of responses (rescaled column-wise if \code{scale = TRUE})}
 
     \item{\code{Y_scale}}{the per-column standard deviation Y was divided by (all
-1's if `scale = FALSE`)}
+1's if Y was not rescaled)}
+
+    \item{\code{scale}}{the \code{scale} argument as given: \code{TRUE}, \code{FALSE}, or \code{NULL}
+for the family default (see \code{for_family()})}
 
     \item{\code{X}}{the matrix of covariates}
 
@@ -50,10 +76,19 @@ c(n = data$n, p = data$p, d = data$d)
   }
   \if{html}{\out{</div>}}
 }
+\section{Active bindings}{
+  \if{html}{\out{<div class="r6-active-bindings">}}
+  \describe{
+    \item{\code{Y_original}}{the matrix of responses as given, before any rescaling}
+  }
+  \if{html}{\out{</div>}}
+}
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-NormalBlockData-initialize}{\code{NormalBlockData$new()}}
+    \item \href{#method-NormalBlockData-for_family}{\code{NormalBlockData$for_family()}}
+    \item \href{#method-NormalBlockData-subset}{\code{NormalBlockData$subset()}}
     \item \href{#method-NormalBlockData-ols_fit}{\code{NormalBlockData$ols_fit()}}
     \item \href{#method-NormalBlockData-zi_ols_fit}{\code{NormalBlockData$zi_ols_fit()}}
     \item \href{#method-NormalBlockData-zi_fit}{\code{NormalBlockData$zi_fit()}}
@@ -64,7 +99,7 @@ c(n = data$n, p = data$p, d = data$d)
 \if{html}{\out{<a id="method-NormalBlockData-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockData-initialize}{}}}
 \subsection{\code{NormalBlockData$new()}}{
-  Create a new [`NormalBlockData`] object.
+  Create a new \code{\link{NormalBlockData}} object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{NormalBlockData$new(
@@ -72,8 +107,9 @@ c(n = data$n, p = data$p, d = data$d)
   X,
   X0 = NULL,
   formula = NULL,
-  scale = TRUE,
-  zeros = NULL
+  scale = NULL,
+  zeros = NULL,
+  check_constant = TRUE
 )}
     \if{html}{\out{</div>}}
   }
@@ -85,12 +121,65 @@ c(n = data$n, p = data$p, d = data$d)
       \item{\code{X0}}{zero-inflation design matrix, if applicable.}
       \item{\code{formula}}{describes the relationship between Y and X, useful if not all of X's covariates should be used.}
       \item{\code{scale}}{whether to rescale each column of Y by its own standard
-deviation (no centering). Default TRUE, see the class-level
-documentation for the rationale and its limits.}
+deviation (no centering): \code{NULL} (default) for the model family's
+default, see the section "Rescaling Y" below and \code{for_family()}.}
       \item{\code{zeros}}{an optional 0/1 matrix of structural zeros, overriding the
-default `Y == 0`.}
+default \code{Y == 0}.}
+      \item{\code{check_constant}}{whether to refuse constant columns of Y, which
+carry no information to cluster on. \code{FALSE} for data only used to
+evaluate a fitted model (see \code{heldout_loglik()}).}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NormalBlockData-for_family"></a>}}
+\if{latex}{\out{\hypertarget{method-NormalBlockData-for_family}{}}}
+\subsection{\code{NormalBlockData$for_family()}}{
+  The data a model of the given family is fitted on. When
+\code{scale} was given explicitly, the object itself. Otherwise (\code{scale = NULL}) the family decides: the object itself, unscaled, for the
+mean-block family; a rescaled copy for the variance-block family,
+built once and shared by every model fitted on it.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{NormalBlockData$for_family(model = c("var", "mean"))}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{model}}{the model family, \code{"var"} or \code{"mean"}}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    a \code{\link{NormalBlockData}} object
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NormalBlockData-subset"></a>}}
+\if{latex}{\out{\hypertarget{method-NormalBlockData-subset}{}}}
+\subsection{\code{NormalBlockData$subset()}}{
+  The data restricted to some observations, with the same
+covariates, formula, zeros and scale request (a rescaled Y is rescaled
+again on these rows).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{NormalBlockData$subset(rows, check_constant = TRUE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{rows}}{the observations to keep (indices or a logical vector)}
+      \item{\code{check_constant}}{as in \code{new()}}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    a \code{\link{NormalBlockData}} object
   }
 }
 
@@ -106,7 +195,7 @@ and their covariance. Computed once and memoized.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    a list with `B` (d x p), `R` (n x p residuals) and `Sigma`
+    a list with \code{B} (d x p), \code{R} (n x p residuals) and \code{Sigma}
 (p x p residual covariance)
   }
 }
@@ -115,9 +204,9 @@ and their covariance. Computed once and memoized.
 \if{html}{\out{<a id="method-NormalBlockData-zi_ols_fit"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockData-zi_ols_fit}{}}}
 \subsection{\code{NormalBlockData$zi_ols_fit()}}{
-  Masked counterpart of `ols_fit()`: a per-variable weighted
+  Masked counterpart of \code{ols_fit()}: a per-variable weighted
 least-squares fit of B under the zero-inflation mask, with its inverse
-residual variances and residuals (see `zi_weighted_fit()`).
+residual variances and residuals (see \code{zi_weighted_fit()}).
 Computed once and memoized.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -125,7 +214,7 @@ Computed once and memoized.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    a list with `B` (d x p), `dm1` (p) and `R` (n x p masked residuals)
+    a list with \code{B} (d x p), \code{dm1} (p) and \code{R} (n x p masked residuals)
   }
 }
 
@@ -133,8 +222,8 @@ Computed once and memoized.
 \if{html}{\out{<a id="method-NormalBlockData-zi_fit"></a>}}
 \if{latex}{\out{\hypertarget{method-NormalBlockData-zi_fit}{}}}
 \subsection{\code{NormalBlockData$zi_fit()}}{
-  Zero-inflation component: `p` independent logistic
-regressions of each variable's zero pattern on `X0`, and the fixed
+  Zero-inflation component: \code{p} independent logistic
+regressions of each variable's zero pattern on \code{X0}, and the fixed
 contribution they make to the log-likelihood. The (V)EM never revisits
 these, so they are a property of the data rather than of a model.
   \subsection{Usage}{
@@ -143,8 +232,8 @@ these, so they are a property of the data rather than of a model.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    a list with `B0` (d0 x p), `kappa` (n x p zero-inflation
-probabilities) and `ZI_cond_mean` (a scalar)
+    a list with \code{B0} (d0 x p), \code{kappa} (n x p zero-inflation
+probabilities) and \code{ZI_cond_mean} (a scalar)
   }
 }
 

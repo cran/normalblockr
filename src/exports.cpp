@@ -18,12 +18,18 @@ Rcpp::NumericVector to_rvector(const arma::vec& v) {
   return Rcpp::NumericVector(v.begin(), v.end());
 }
 
+// S is a vector (one variance per block) without zero-inflation, an n x q
+// matrix with it (row-dependent because of the mask).
+Rcpp::RObject wrap_S(const arma::vec& S) { return to_rvector(S); }
+Rcpp::RObject wrap_S(const arma::mat& S) { return Rcpp::wrap(S); }
+
+// gamma is q x q without zero-inflation, a q x q x n array with it.
 template <typename Model>
 Rcpp::List known_clusters_result(const Model& model) {
   return Rcpp::List::create(
     Rcpp::Named("B")         = model.B(),
     Rcpp::Named("dm1")       = to_rvector(model.dm1()),
-    Rcpp::Named("Omega")    = model.Omega(),
+    Rcpp::Named("Omega")     = model.Omega(),
     Rcpp::Named("gamma")     = model.Gamma(),
     Rcpp::Named("mu")        = model.Mu(),
     Rcpp::Named("objective") = Rcpp::wrap(model.objective_trace()),
@@ -36,42 +42,33 @@ Rcpp::List unknown_clusters_result(const Model& model) {
   return Rcpp::List::create(
     Rcpp::Named("B")         = model.B(),
     Rcpp::Named("dm1")       = to_rvector(model.dm1()),
-    Rcpp::Named("Omega")    = model.Omega(),
+    Rcpp::Named("Omega")     = model.Omega(),
     Rcpp::Named("C")         = model.C(),
     Rcpp::Named("alpha")     = to_rvector(model.alpha()),
     Rcpp::Named("M")         = model.M(),
-    Rcpp::Named("S")         = to_rvector(model.S()),
+    Rcpp::Named("S")         = wrap_S(model.S()),
     Rcpp::Named("objective") = Rcpp::wrap(model.objective_trace()),
     Rcpp::Named("niter")     = model.niter()
   );
 }
 
-template <typename Model>
-Rcpp::List ZINormalBlockVarKnownClusters_result(const Model& model) {
-  return Rcpp::List::create(
-    Rcpp::Named("B")         = model.B(),
-    Rcpp::Named("dm1")       = to_rvector(model.dm1()),
-    Rcpp::Named("Omega")    = model.Omega(),
-    Rcpp::Named("gamma")     = model.Gamma(), // q x q x n array
-    Rcpp::Named("mu")        = model.Mu(),
-    Rcpp::Named("objective") = Rcpp::wrap(model.objective_trace()),
-    Rcpp::Named("niter")     = model.niter()
-  );
-}
-
-template <typename Model>
-Rcpp::List ZINormalBlockVarUnknownClusters_result(const Model& model) {
-  return Rcpp::List::create(
-    Rcpp::Named("B")         = model.B(),
-    Rcpp::Named("dm1")       = to_rvector(model.dm1()),
-    Rcpp::Named("Omega")    = model.Omega(),
-    Rcpp::Named("C")         = model.C(),
-    Rcpp::Named("alpha")     = to_rvector(model.alpha()),
-    Rcpp::Named("M")         = model.M(),
-    Rcpp::Named("S")         = model.S(), // n x q matrix
-    Rcpp::Named("objective") = Rcpp::wrap(model.objective_trace()),
-    Rcpp::Named("niter")     = model.niter()
-  );
+// Builds the variance-block model for the requested noise shape, runs its
+// (V)EM and wraps the result.
+template <typename Diagonal, typename Spherical, typename Result, typename... Args>
+Rcpp::List fit_by_noise(const std::string& noise_covariance, bool accelerate, int niter,
+                        double threshold, Result result, Args&&... args) {
+  if (noise_covariance == "diagonal") {
+    Diagonal model(std::forward<Args>(args)...);
+    model.set_acceleration(accelerate);
+    model.run_em(niter, threshold);
+    return result(model);
+  } else if (noise_covariance == "spherical") {
+    Spherical model(std::forward<Args>(args)...);
+    model.set_acceleration(accelerate);
+    model.run_em(niter, threshold);
+    return result(model);
+  }
+  Rcpp::stop("noise_covariance must be either \"diagonal\" or \"spherical\"");
 }
 
 } // namespace
@@ -95,6 +92,8 @@ Rcpp::List ZINormalBlockVarUnknownClusters_result(const Model& model) {
 //' @param noise_covariance either "diagonal" or "spherical"
 //' @param niter maximum number of EM iterations
 //' @param threshold convergence threshold on the objective increment
+//' @param accelerate whether to attempt the SQUAREM extrapolation on top of
+//' plain EM (never attempted when sparsity > 0)
 //' @return a list with the fitted parameters (B, dm1, Omega, gamma, mu), the
 //' objective (log-likelihood) trace and the number of iterations performed
 //' @noRd
@@ -103,19 +102,13 @@ Rcpp::List NormalBlockVarKnownClusters_fit(const arma::mat& Y, const arma::mat& 
                                   arma::mat B0, arma::vec dm1_0, arma::mat Omega0,
                                   double sparsity, arma::mat sparsity_weights,
                                   std::string noise_covariance,
-                                  int niter, double threshold) {
+                                  int niter, double threshold, bool accelerate = true) {
   NormalBlockData data(Y, X);
-
-  if (noise_covariance == "diagonal") {
-    norm_block_var_cov_diag_noise_known_clusters model(data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
-    model.run_em(niter, threshold);
-    return known_clusters_result(model);
-  } else if (noise_covariance == "spherical") {
-    norm_block_var_cov_spherical_noise_known_clusters model(data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
-    model.run_em(niter, threshold);
-    return known_clusters_result(model);
-  }
-  Rcpp::stop("noise_covariance must be either \"diagonal\" or \"spherical\"");
+  return fit_by_noise<norm_block_var_cov_diag_noise_known_clusters,
+                      norm_block_var_cov_spherical_noise_known_clusters>(
+    noise_covariance, accelerate, niter, threshold,
+    [](const auto& model) { return known_clusters_result(model); },
+    data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
 }
 
 //' Fit a normal-block model with unknown clusters (Rcpp/Armadillo core, VEM)
@@ -140,21 +133,13 @@ Rcpp::List NormalBlockVarUnknownClusters_fit(const arma::mat& Y, const arma::mat
                                     arma::mat C0, arma::vec alpha0, arma::mat M0, arma::vec S0,
                                     double sparsity, arma::mat sparsity_weights,
                                     std::string noise_covariance, bool fixed_tau,
-                                    int niter, double threshold) {
+                                    int niter, double threshold, bool accelerate = true) {
   NormalBlockData data(Y, X);
-
-  if (noise_covariance == "diagonal") {
-    norm_block_var_cov_diag_noise_unknown_clusters model(data, B0, dm1_0, Omega0, C0, alpha0, M0, S0,
-                                                      sparsity, sparsity_weights, fixed_tau);
-    model.run_em(niter, threshold);
-    return unknown_clusters_result(model);
-  } else if (noise_covariance == "spherical") {
-    norm_block_var_cov_spherical_noise_unknown_clusters model(data, B0, dm1_0, Omega0, C0, alpha0, M0, S0,
-                                                          sparsity, sparsity_weights, fixed_tau);
-    model.run_em(niter, threshold);
-    return unknown_clusters_result(model);
-  }
-  Rcpp::stop("noise_covariance must be either \"diagonal\" or \"spherical\"");
+  return fit_by_noise<norm_block_var_cov_diag_noise_unknown_clusters,
+                      norm_block_var_cov_spherical_noise_unknown_clusters>(
+    noise_covariance, accelerate, niter, threshold,
+    [](const auto& model) { return unknown_clusters_result(model); },
+    data, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, fixed_tau);
 }
 
 //' Fit a zero-inflated normal-block model with known clusters (Rcpp/Armadillo core)
@@ -179,6 +164,8 @@ Rcpp::List NormalBlockVarUnknownClusters_fit(const arma::mat& Y, const arma::mat
 //' @param noise_covariance either "diagonal" or "spherical"
 //' @param niter maximum number of EM iterations
 //' @param threshold convergence threshold on the objective increment
+//' @param accelerate whether to attempt the SQUAREM extrapolation on top of
+//' plain EM (never attempted when sparsity > 0)
 //' @return a list with the fitted parameters (B, dm1, Omega, gamma, mu -- gamma
 //' is a q x q x n array, one posterior covariance matrix per row), the
 //' log-likelihood trace and the number of iterations performed
@@ -189,19 +176,13 @@ Rcpp::List ZINormalBlockVarKnownClusters_fit(const arma::mat& Y, const arma::mat
                                   arma::mat B0, arma::vec dm1_0, arma::mat Omega0,
                                   double sparsity, arma::mat sparsity_weights,
                                   std::string noise_covariance,
-                                  int niter, double threshold) {
+                                  int niter, double threshold, bool accelerate = true) {
   ZINormalBlockData data(Y, X, zeros_bar, zi_cond_mean);
-
-  if (noise_covariance == "diagonal") {
-    zi_norm_block_var_cov_diag_noise_known_clusters model(data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
-    model.run_em(niter, threshold);
-    return ZINormalBlockVarKnownClusters_result(model);
-  } else if (noise_covariance == "spherical") {
-    zi_norm_block_var_cov_spherical_noise_known_clusters model(data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
-    model.run_em(niter, threshold);
-    return ZINormalBlockVarKnownClusters_result(model);
-  }
-  Rcpp::stop("noise_covariance must be either \"diagonal\" or \"spherical\"");
+  return fit_by_noise<zi_norm_block_var_cov_diag_noise_known_clusters,
+                      zi_norm_block_var_cov_spherical_noise_known_clusters>(
+    noise_covariance, accelerate, niter, threshold,
+    [](const auto& model) { return known_clusters_result(model); },
+    data, C, B0, dm1_0, Omega0, sparsity, sparsity_weights);
 }
 
 //' Fit a zero-inflated normal-block model with unknown clusters (Rcpp/Armadillo core, VEM)
@@ -229,21 +210,13 @@ Rcpp::List ZINormalBlockVarUnknownClusters_fit(const arma::mat& Y, const arma::m
                                     arma::mat C0, arma::vec alpha0, arma::mat M0, arma::mat S0,
                                     double sparsity, arma::mat sparsity_weights,
                                     std::string noise_covariance, bool fixed_tau,
-                                    int niter, double threshold) {
+                                    int niter, double threshold, bool accelerate = true) {
   ZINormalBlockData data(Y, X, zeros_bar, zi_cond_mean);
-
-  if (noise_covariance == "diagonal") {
-    zi_norm_block_var_cov_diag_noise_unknown_clusters model(data, B0, dm1_0, Omega0, C0, alpha0, M0, S0,
-                                                         sparsity, sparsity_weights, fixed_tau);
-    model.run_em(niter, threshold);
-    return ZINormalBlockVarUnknownClusters_result(model);
-  } else if (noise_covariance == "spherical") {
-    zi_norm_block_var_cov_spherical_noise_unknown_clusters model(data, B0, dm1_0, Omega0, C0, alpha0, M0, S0,
-                                                              sparsity, sparsity_weights, fixed_tau);
-    model.run_em(niter, threshold);
-    return ZINormalBlockVarUnknownClusters_result(model);
-  }
-  Rcpp::stop("noise_covariance must be either \"diagonal\" or \"spherical\"");
+  return fit_by_noise<zi_norm_block_var_cov_diag_noise_unknown_clusters,
+                      zi_norm_block_var_cov_spherical_noise_unknown_clusters>(
+    noise_covariance, accelerate, niter, threshold,
+    [](const auto& model) { return unknown_clusters_result(model); },
+    data, B0, dm1_0, Omega0, C0, alpha0, M0, S0, sparsity, sparsity_weights, fixed_tau);
 }
 
 //' Fit a mean-block model with known clusters (Rcpp/Armadillo core)
@@ -416,8 +389,8 @@ Rcpp::List ZINormalBlockMeanUnknownClusters_fit(const arma::mat& Y, const arma::
 //' Graphical lasso (Rcpp/Armadillo core)
 //'
 //' In-package replacement for `glassoFast::glassoFast()`; see
-//' src/graphical_lasso.h for the algorithm and the two deliberate departures
-//' from the Fortran it ports.
+//' src/graphical_lasso.h (shared verbatim with PLNmodels) for the algorithm, its
+//' scaling to a unit diagonal and its departures from the Fortran it ports.
 //'
 //' @param S empirical covariance matrix (n x n)
 //' @param rho penalty, either a scalar or an n x n matrix of per-pair weights
@@ -426,7 +399,9 @@ Rcpp::List ZINormalBlockMeanUnknownClusters_fit(const arma::mat& Y, const arma::
 //' @param w_init,wi_init optional warm start: a previous solve's `w`/`wi`.
 //' Both must be given, and have S's dimensions, to be used.
 //' @return a list with `w` (covariance estimate), `wi` (precision estimate),
-//' `niter` and `converged`
+//' `niter`, `converged`, `status` (how the solve ended), `delta` (best
+//' convergence criterion, relative to its threshold) and `shift` (added to the
+//' diagonal of `wi` to make it positive definite, 0 if it was)
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List graphical_lasso_fit(const arma::mat& S, const Rcpp::NumericVector& rho,
@@ -442,17 +417,20 @@ Rcpp::List graphical_lasso_fit(const arma::mat& S, const Rcpp::NumericVector& rh
     if (L.n_rows != S.n_rows || L.n_cols != S.n_cols)
       Rcpp::stop("`rho`, when a matrix, must have the same dimensions as `S`");
   }
-  nb_glasso::State warm;
+  graphical_lasso::State warm;
   if (w_init.isNotNull() && wi_init.isNotNull()) {
     warm.W = Rcpp::as<arma::mat>(w_init.get());
     warm.X = Rcpp::as<arma::mat>(wi_init.get());
     warm.filled = true;
   }
-  nb_glasso::Result res = nb_glasso::solve(S, L, thr, maxIt, warm.filled ? &warm : nullptr);
+  graphical_lasso::Result res = graphical_lasso::solve(S, L, thr, maxIt, warm.filled ? &warm : nullptr);
   return Rcpp::List::create(
     Rcpp::Named("w")         = res.W,
     Rcpp::Named("wi")        = res.X,
     Rcpp::Named("niter")     = res.niter,
-    Rcpp::Named("converged") = res.converged
+    Rcpp::Named("converged") = res.converged,
+    Rcpp::Named("status")    = graphical_lasso::status_name(res.status),
+    Rcpp::Named("delta")     = res.delta,
+    Rcpp::Named("shift")     = res.shift
   );
 }

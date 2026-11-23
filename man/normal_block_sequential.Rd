@@ -2,7 +2,7 @@
 % Please edit documentation in R/normal_block_sequential.R
 \name{normal_block_sequential}
 \alias{normal_block_sequential}
-\title{Cluster variables in the mean, then in the residual covariance}
+\title{Cluster Variables in the Mean, then in the Residual Covariance}
 \usage{
 normal_block_sequential(
   data,
@@ -15,10 +15,13 @@ normal_block_sequential(
 )
 }
 \arguments{
-\item{data}{a [NormalBlockData] object}
+\item{data}{a \link{NormalBlockData} object}
 
 \item{blocks_mean}{number of clusters for the mean-block stage: an integer,
-a vector of integers to explore, or a p x q indicator matrix}
+a vector of integers to explore, or a p x q indicator matrix. It can also be
+a mean-block model or collection already fitted on \code{data} (by
+\code{normal_block(data, ..., model = "mean")}), in which case the first stage
+is not refitted: a collection is reduced to its best model by \code{crit}.}
 
 \item{blocks_var}{idem for the variance-block stage, run on the residuals}
 
@@ -29,19 +32,19 @@ a vector of integers to explore, or a p x q indicator matrix}
 then zero-inflated, sharing the same mask: the second one would otherwise
 re-derive it from residuals, which are never exactly zero.}
 
-\item{control_mean}{control list for the mean-block stage, see [NB_control()]}
+\item{control_mean}{control list for the mean-block stage, see \code{\link[=NB_control]{NB_control()}}}
 
 \item{control_var}{control list for the variance-block stage}
 }
 \value{
-an object of class `normal_block_sequential`, a list with the fitted
-`mean` and `var` models and the residual matrix `residuals` handed from one
+an object of class \code{normal_block_sequential}, a list with the fitted
+\code{mean} and \code{var} models and the residual matrix \code{residuals} handed from one
 stage to the other.
 }
 \description{
 Fits the two model families one after the other: a mean-block model
-([NormalBlockMeanBase]) groups the variables by how they respond to the
-covariates, then a variance-block model ([NormalBlockVarBase]) groups the
+(\link{NormalBlockMeanBase}) groups the variables by how they respond to the
+covariates, then a variance-block model (\link{NormalBlockVarBase}) groups the
 residuals of that fit by how they co-vary. The two answer different
 questions and generally return unrelated partitions, so running both is
 often more informative than choosing one.
@@ -50,9 +53,7 @@ often more informative than choosing one.
 The second stage uses an intercept-only design on purpose: the covariate
 effects have already been removed by the first stage.
 
-This is a heuristic two-stage estimator, not a joint model. On simulated
-data carrying two genuinely distinct structures it recovers both exactly
-(see `inst/mean_block_analyses/sequential_mean_then_variance.R`).
+This is a heuristic two-stage estimator, not a joint model.
 }
 \examples{
 ex   <- generate_normal_block_mean_data(n = 80, p = 20, d = 1, q = 3)
